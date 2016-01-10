@@ -21,6 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"runtime"
 	"time"
 	"unsafe"
@@ -30,36 +31,39 @@ import (
 )
 
 var keymap = [16]string{
-	"0",
+	"X",
 	"1",
 	"2",
 	"3",
-	"4",
-	"5",
-	"6",
-	"7",
-	"8",
-	"9",
-	"A",
-	"B",
-	"C",
-	"D",
+	"Q",
+	"W",
 	"E",
+	"A",
+	"S",
+	"D",
+	"Z",
+	"C",
+	"4",
+	"R",
 	"F",
+	"V",
 }
+
+var programPath string
 
 type machine [64 * 32 * 3]byte
 
 func (m *machine) Load(memory []byte) {
-	program, err := ioutil.ReadFile(flag.Args()[1])
+	program, err := ioutil.ReadFile(programPath)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		os.Exit(-1)
 	}
 	copy(memory, program)
 }
 
 func (m *machine) Beep() {
-	fmt.Printf("\a")
+	//fmt.Printf("\a")
 }
 
 func (m *machine) Key(code int) bool {
@@ -80,15 +84,20 @@ func (m *machine) Draw(video []byte) {
 }
 
 func init() {
+	flag.Parse()
 	runtime.LockOSThread()
 }
 
 func main() {
-	if len(flag.Args()) != 2 {
+	flags := flag.Args()
+	if len(flags) != 1 {
 		fmt.Println("Chippy - CHIP8 Emulator")
-		fmt.Println("Copyright (C) 2016 Andreas T Jonsson\n")
+		fmt.Println("Copyright (C) 2016 Andreas T Jonsson")
+		fmt.Printf("Version: %v\n\n")
 		fmt.Println("usage: chippy [program]\n")
 		return
+	} else {
+		programPath = flags[0]
 	}
 
 	sdl.Init(sdl.INIT_EVERYTHING)
@@ -135,6 +144,8 @@ func main() {
 					}
 				}
 			}
+
+			sys.Refresh()
 
 			renderer.Clear()
 			texture.Update(nil, unsafe.Pointer(&m[0]), 64*3)

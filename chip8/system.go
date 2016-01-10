@@ -61,6 +61,7 @@ type System struct {
 	io                     InputOutput
 
 	lastTick time.Time
+	draw     bool
 }
 
 func (sys *System) Reset() {
@@ -93,7 +94,7 @@ func (sys *System) clearScreen() {
 	for i := range sys.video {
 		sys.video[i] = 0
 	}
-	//sys.io.Draw(sys.video[:])
+	sys.draw = true
 }
 
 func (sys *System) tickTimers() {
@@ -324,16 +325,21 @@ func (sys *System) Step() error {
 			pixel := sys.memory[sys.i+yline]
 			for xline := uint16(0); xline < 8; xline++ {
 				if (pixel & (0x80 >> xline)) != 0 {
-					if sys.video[(x+xline+((y+yline)*64))] != 0 {
+					offset := x + xline + ((y + yline) * 64)
+					if len(sys.video) > int(offset) && sys.video[offset] != 0 {
 						sys.v[0xF] = 1
 					}
-					sys.video[x+xline+((y+yline)*64)] ^= 1
+
+					offset = x + xline + ((y + yline) * 64)
+					if len(sys.video) > int(offset) {
+						sys.video[offset] ^= 1
+					}
 				}
 			}
 		}
 
 		sys.pc += 2
-		sys.io.Draw(sys.video[:])
+		sys.draw = true
 	case 0xE000:
 		if err := sys.opE(opcode); err != nil {
 			return err
@@ -350,6 +356,13 @@ func (sys *System) Step() error {
 
 	sys.tickTimers()
 	return nil
+}
+
+func (sys *System) Refresh() {
+	if sys.draw {
+		sys.draw = false
+		sys.io.Draw(sys.video[:])
+	}
 }
 
 func NewSystem(io InputOutput) *System {
