@@ -63,7 +63,9 @@ func (m *machine) Load(memory []byte) {
 }
 
 func (m *machine) Beep() {
-	//fmt.Printf("\a")
+	//go func() {
+	//	fmt.Printf("\a")
+	//}()
 }
 
 func (m *machine) Key(code int) bool {
@@ -93,7 +95,7 @@ func main() {
 	if len(flags) != 1 {
 		fmt.Println("Chippy - CHIP8 Emulator")
 		fmt.Println("Copyright (C) 2016 Andreas T Jonsson")
-		fmt.Printf("Version: %v\n\n")
+		fmt.Printf("Version: %v\n\n", chip8.Version)
 		fmt.Println("usage: chippy [program]\n")
 		return
 	} else {
