@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const Version = "1.0.0"
+const Version = "1.1.0"
 
 var fontset = [80]byte{
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -48,7 +48,8 @@ type InputOutput interface {
 	Load(memory []byte)
 	Draw(video []byte)
 	Key(code int) bool
-	Beep()
+	BeginTone()
+	EndTone()
 }
 
 type System struct {
@@ -112,7 +113,7 @@ func (sys *System) tickTimers() {
 	if sys.soundTimer > 0 {
 		sys.soundTimer--
 		if sys.soundTimer == 0 {
-			sys.io.Beep()
+			sys.io.EndTone()
 		}
 	}
 }
@@ -231,7 +232,11 @@ func (sys *System) opF(opcode uint16) error {
 		sys.delayTimer = sys.v[(opcode&0xF00)>>8]
 		sys.pc += 2
 	case 0x18:
-		sys.soundTimer = sys.v[(opcode&0xF00)>>8]
+		t := sys.v[(opcode&0xF00)>>8]
+		if sys.delayTimer == 0 && t > 0 {
+			sys.io.BeginTone()
+		}
+		sys.soundTimer = t
 		sys.pc += 2
 	case 0x1E:
 		sys.i += uint16(sys.v[(opcode&0xF00)>>8])
