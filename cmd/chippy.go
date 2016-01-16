@@ -170,7 +170,7 @@ func main() {
 	sdl.Init(sdl.INIT_EVERYTHING)
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 1024, 512, sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 640, 320, sdl.WINDOW_SHOWN)
 	if err != nil {
 		panic(err)
 	}
