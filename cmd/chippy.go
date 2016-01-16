@@ -30,7 +30,9 @@ import "C"
 import (
 	"flag"
 	"fmt"
+	"image/color"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path"
 	"runtime"
@@ -60,20 +62,27 @@ var keymap = [16]string{
 	"V",
 }
 
-var (
-	programPath string
-	cpuSpeedHz  time.Duration = 500
-)
+const defaultCPUSpeed = 500
 
-type machine [64 * 32 * 3]byte
+var screenColor color.RGBA
+
+type machine struct {
+	programPath string
+	cpuSpeedHz  time.Duration
+	video       [64 * 4 * 32 * 4 * 3]byte
+}
 
 func (m *machine) Load(memory []byte) {
-	program, err := ioutil.ReadFile(programPath)
+	program, err := ioutil.ReadFile(m.programPath)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
 	copy(memory, program)
+}
+
+func (m *machine) Rand() *rand.Rand {
+	return rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 func (m *machine) BeginTone() {
@@ -91,19 +100,50 @@ func (m *machine) Key(code int) bool {
 }
 
 func (m *machine) Draw(video []byte) {
-	for i, x := range video {
-		i *= 3
-		c := x * 255
+	putPixel := func(x, y int, buffer []byte) {
+		i := (y*64*4 + x) * 3
+		buffer[i] = screenColor.B
+		buffer[i+1] = screenColor.G
+		buffer[i+2] = screenColor.R
+	}
 
-		m[i] = c
-		m[i+1] = c
-		m[i+2] = c
+	destY := 0
+	destX := 0
+
+	for i := range m.video {
+		m.video[i] = 0
+	}
+
+	for y := 0; y < 32; y++ {
+		destY = y * 4
+		for i := 0; i < 3; i++ {
+			for x := 0; x < 64; x++ {
+				destX = x * 4
+				if video[y*64+x] > 0 {
+					putPixel(destX, destY+i, m.video[:])
+					putPixel(destX+1, destY+i, m.video[:])
+					putPixel(destX+2, destY+i, m.video[:])
+				}
+
+			}
+		}
 	}
 }
 
-func updateTitle(window *sdl.Window) {
-	title := fmt.Sprintf("Chippy - %dHz - %s", cpuSpeedHz, path.Base(programPath))
+func updateTitle(window *sdl.Window, m *machine) {
+	title := fmt.Sprintf("Chippy - %dHz - %s", m.cpuSpeedHz, path.Base(m.programPath))
 	window.SetTitle(title)
+}
+
+func toggleFullscreen(window *sdl.Window) {
+	isFullscreen := (window.GetFlags() & sdl.WINDOW_FULLSCREEN) != 0
+	if isFullscreen {
+		window.SetFullscreen(0)
+		sdl.ShowCursor(1)
+	} else {
+		window.SetFullscreen(sdl.WINDOW_FULLSCREEN_DESKTOP)
+		sdl.ShowCursor(0)
+	}
 }
 
 func init() {
@@ -120,17 +160,21 @@ func main() {
 		fmt.Printf("usage: chippy [program]\n\n")
 		return
 	}
-	programPath = flags[0]
+
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	screenColor.R = uint8(r.Intn(127)) + 128
+	screenColor.G = uint8(r.Intn(127)) + 128
+	screenColor.B = uint8(r.Intn(127)) + 128
+	screenColor.A = 255
 
 	sdl.Init(sdl.INIT_EVERYTHING)
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 640, 320, sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 1024, 512, sdl.WINDOW_SHOWN)
 	if err != nil {
 		panic(err)
 	}
 	defer window.Destroy()
-	updateTitle(window)
 
 	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
@@ -138,11 +182,11 @@ func main() {
 	}
 	defer renderer.Destroy()
 
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "0")
-	renderer.SetLogicalSize(64, 32)
+	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "linear")
+	renderer.SetLogicalSize(64*4, 32*4)
 	renderer.SetDrawColor(0, 0, 0, 255)
 
-	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_BGR24, sdl.TEXTUREACCESS_STREAMING, 64, 32)
+	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_BGR24, sdl.TEXTUREACCESS_STREAMING, 64*4, 32*4)
 	if err != nil {
 		panic(err)
 	}
@@ -160,11 +204,13 @@ func main() {
 	}
 	defer sdl.CloseAudio()
 
-	var m machine
+	m := machine{programPath: flags[0], cpuSpeedHz: defaultCPUSpeed}
+	updateTitle(window, &m)
+
 	sys := chip8.NewSystem(&m)
 
 	tickRender := time.Tick(time.Second / 65)
-	tickCPU := time.Tick(time.Second / cpuSpeedHz)
+	tickCPU := time.Tick(time.Second / m.cpuSpeedHz)
 
 	for {
 		select {
@@ -179,17 +225,19 @@ func main() {
 						return
 					case sdl.K_BACKSPACE:
 						sys.Reset()
+					case sdl.K_f:
+						toggleFullscreen(window)
 					case sdl.K_p:
-						if cpuSpeedHz < 2000 {
-							cpuSpeedHz += 100
-							updateTitle(window)
-							tickCPU = time.Tick(time.Second / cpuSpeedHz)
+						if m.cpuSpeedHz < 2000 {
+							m.cpuSpeedHz += 100
+							updateTitle(window, &m)
+							tickCPU = time.Tick(time.Second / m.cpuSpeedHz)
 						}
 					case sdl.K_m:
-						if cpuSpeedHz > 100 {
-							cpuSpeedHz -= 100
-							updateTitle(window)
-							tickCPU = time.Tick(time.Second / cpuSpeedHz)
+						if m.cpuSpeedHz > 100 {
+							m.cpuSpeedHz -= 100
+							updateTitle(window, &m)
+							tickCPU = time.Tick(time.Second / m.cpuSpeedHz)
 						}
 					}
 				}
@@ -198,7 +246,7 @@ func main() {
 			sys.Refresh()
 
 			renderer.Clear()
-			texture.Update(nil, unsafe.Pointer(&m[0]), 64*3)
+			texture.Update(nil, unsafe.Pointer(&m.video[0]), 64*4*3)
 			renderer.Copy(texture, nil, nil)
 			renderer.Present()
 		case <-tickCPU:

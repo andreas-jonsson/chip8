@@ -23,7 +23,7 @@ import (
 	"time"
 )
 
-const Version = "1.1.0"
+const Version = "1.2.0"
 
 var fontset = [80]byte{
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -48,6 +48,7 @@ type InputOutput interface {
 	Load(memory []byte)
 	Draw(video []byte)
 	Key(code int) bool
+	Rand() *rand.Rand
 	BeginTone()
 	EndTone()
 }
@@ -64,6 +65,7 @@ type System struct {
 	io                     InputOutput
 
 	lastTick time.Time
+	rnd      *rand.Rand
 	draw     bool
 }
 
@@ -76,6 +78,7 @@ func (sys *System) Reset() {
 	sys.soundTimer = 0
 
 	sys.lastTick = time.Now()
+	sys.rnd = sys.io.Rand()
 
 	for i := range sys.v {
 		sys.v[i] = 0x0
@@ -320,7 +323,7 @@ func (sys *System) Step() error {
 	case 0xB000:
 		sys.pc = (opcode & 0xFFF) + uint16(sys.v[0])
 	case 0xC000:
-		sys.v[(opcode&0xF00)>>8] = byte(rand.Intn(255)) & byte(opcode&0xFF)
+		sys.v[(opcode&0xF00)>>8] = byte(sys.rnd.Intn(255)) & byte(opcode&0xFF)
 		sys.pc += 2
 	case 0xD000:
 		x := uint16(sys.v[(opcode&0xF00)>>8])
