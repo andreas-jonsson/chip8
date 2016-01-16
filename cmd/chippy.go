@@ -176,7 +176,7 @@ func main() {
 	}
 	defer window.Destroy()
 
-	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
+	renderer, err := sdl.CreateRenderer(window, -1, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -225,7 +225,7 @@ func main() {
 						return
 					case sdl.K_BACKSPACE:
 						sys.Reset()
-					case sdl.K_f:
+					case sdl.K_g:
 						toggleFullscreen(window)
 					case sdl.K_p:
 						if m.cpuSpeedHz < 2000 {
