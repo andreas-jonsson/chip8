@@ -37,7 +37,32 @@ const (
 	defaultCPUSpeed = 500
 )
 
-var screenColor color.RGBA
+var (
+	screenColor color.RGBA
+	kbMapping   = [16]int{
+		88,
+		49,
+		50,
+		51,
+		81,
+		87,
+		69,
+		65,
+		83,
+		68,
+		90,
+		67,
+		52,
+		82,
+		70,
+		86,
+	}
+)
+
+var kb struct {
+	sync.Mutex
+	keys map[int]bool
+}
 
 type machine struct {
 	sync.Mutex
@@ -64,7 +89,9 @@ func (m *machine) EndTone() {
 }
 
 func (m *machine) Key(code int) bool {
-	return false
+	kb.Lock()
+	defer kb.Unlock()
+	return kb.keys[kbMapping[code]]
 }
 
 func (m *machine) Draw(video []byte) {
@@ -139,6 +166,8 @@ func main() {
 	screenColor.B = uint8(r.Intn(127)) + 128
 	screenColor.A = 255
 
+	kb.keys = make(map[int]bool)
+
 	js.Global.Call("addEventListener", "load", func() { go start() })
 }
 
@@ -176,11 +205,15 @@ func start() {
 
 	document := js.Global.Get("document")
 	document.Set("onkeydown", func(e *js.Object) {
-		fmt.Println(e.Get("keyCode").Int())
+		kb.Lock()
+		kb.keys[e.Get("keyCode").Int()] = true
+		kb.Unlock()
 	})
 
 	document.Set("onkeyup", func(e *js.Object) {
-		fmt.Println(e.Get("keyCode").Int())
+		kb.Lock()
+		kb.keys[e.Get("keyCode").Int()] = false
+		kb.Unlock()
 	})
 
 	canvas := document.Call("createElement", "canvas")
