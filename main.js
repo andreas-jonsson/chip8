@@ -13822,7 +13822,7 @@ $packages["reflect"] = (function() {
 	return $pkg;
 })();
 $packages["fmt"] = (function() {
-	var $pkg = {}, $init, errors, io, math, os, reflect, strconv, sync, utf8, fmtFlags, fmt, State, Formatter, Stringer, GoStringer, buffer, pp, runeUnreader, scanError, ss, ssave, sliceType, sliceType$1, ptrType, arrayType, arrayType$1, ptrType$1, arrayType$2, sliceType$2, ptrType$2, ptrType$5, ptrType$25, funcType, padZeroBytes, padSpaceBytes, trueBytes, falseBytes, commaSpaceBytes, nilAngleBytes, nilParenBytes, nilBytes, mapBytes, percentBangBytes, missingBytes, badIndexBytes, panicBytes, extraBytes, irparenBytes, bytesBytes, badWidthBytes, badPrecBytes, noVerbBytes, ppFree, intBits, uintptrBits, byteType, space, ssFree, complexError, boolError, _r, _r$1, init, doPrec, newPrinter, Sprintf, Errorf, Fprintln, Println, getField, tooLarge, parsenum, intFromArg, parseArgNumber, isSpace, notSpace, indexRune;
+	var $pkg = {}, $init, errors, io, math, os, reflect, strconv, sync, utf8, fmtFlags, fmt, State, Formatter, Stringer, GoStringer, buffer, pp, runeUnreader, scanError, ss, ssave, sliceType, sliceType$1, ptrType, arrayType, arrayType$1, ptrType$1, arrayType$2, sliceType$2, ptrType$2, ptrType$5, ptrType$25, funcType, padZeroBytes, padSpaceBytes, trueBytes, falseBytes, commaSpaceBytes, nilAngleBytes, nilParenBytes, nilBytes, mapBytes, percentBangBytes, missingBytes, badIndexBytes, panicBytes, extraBytes, irparenBytes, bytesBytes, badWidthBytes, badPrecBytes, noVerbBytes, ppFree, intBits, uintptrBits, byteType, space, ssFree, complexError, boolError, _r, _r$1, init, doPrec, newPrinter, Sprintf, Errorf, getField, tooLarge, parsenum, intFromArg, parseArgNumber, isSpace, notSpace, indexRune;
 	errors = $packages["errors"];
 	io = $packages["io"];
 	math = $packages["math"];
@@ -14653,37 +14653,6 @@ $packages["fmt"] = (function() {
 		/* */ } return; } if ($f === undefined) { $f = { $blk: Errorf }; } $f.$ptr = $ptr; $f._r$2 = _r$2; $f._r$3 = _r$3; $f.a = a; $f.format = format; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	$pkg.Errorf = Errorf;
-	Fprintln = function(w, a) {
-		var $ptr, _r$2, _r$3, _tuple, a, err, n, p, w, x, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$2 = $f._r$2; _r$3 = $f._r$3; _tuple = $f._tuple; a = $f.a; err = $f.err; n = $f.n; p = $f.p; w = $f.w; x = $f.x; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		n = 0;
-		err = $ifaceNil;
-		_r$2 = newPrinter(); /* */ $s = 1; case 1: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-		p = _r$2;
-		$r = p.doPrint(a, true, true); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		_r$3 = w.Write((x = p.buf, $subslice(new sliceType(x.$array), x.$offset, x.$offset + x.$length))); /* */ $s = 3; case 3: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
-		_tuple = _r$3;
-		n = _tuple[0];
-		err = _tuple[1];
-		p.free();
-		return [n, err];
-		/* */ } return; } if ($f === undefined) { $f = { $blk: Fprintln }; } $f.$ptr = $ptr; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._tuple = _tuple; $f.a = a; $f.err = err; $f.n = n; $f.p = p; $f.w = w; $f.x = x; $f.$s = $s; $f.$r = $r; return $f;
-	};
-	$pkg.Fprintln = Fprintln;
-	Println = function(a) {
-		var $ptr, _r$2, _tuple, a, err, n, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$2 = $f._r$2; _tuple = $f._tuple; a = $f.a; err = $f.err; n = $f.n; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		n = 0;
-		err = $ifaceNil;
-		_r$2 = Fprintln(os.Stdout, a); /* */ $s = 1; case 1: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-		_tuple = _r$2;
-		n = _tuple[0];
-		err = _tuple[1];
-		/* */ $s = 2; case 2:
-		return [n, err];
-		/* */ } return; } if ($f === undefined) { $f = { $blk: Println }; } $f.$ptr = $ptr; $f._r$2 = _r$2; $f._tuple = _tuple; $f.a = a; $f.err = err; $f.n = n; $f.$s = $s; $f.$r = $r; return $f;
-	};
-	$pkg.Println = Println;
 	getField = function(v, i) {
 		var $ptr, _r$2, _r$3, i, v, val, $s, $r;
 		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$2 = $f._r$2; _r$3 = $f._r$3; i = $f.i; v = $f.v; val = $f.val; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
@@ -16185,37 +16154,6 @@ $packages["fmt"] = (function() {
 		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: pp.ptr.prototype.doPrintf }; } $f.$ptr = $ptr; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._r$5 = _r$5; $f._ref = _ref; $f._tuple = _tuple; $f._tuple$1 = _tuple$1; $f._tuple$2 = _tuple$2; $f._tuple$3 = _tuple$3; $f._tuple$4 = _tuple$4; $f._tuple$5 = _tuple$5; $f._tuple$6 = _tuple$6; $f._tuple$7 = _tuple$7; $f.a = a; $f.afterIndex = afterIndex; $f.arg = arg; $f.arg$1 = arg$1; $f.argNum = argNum; $f.c = c; $f.end = end; $f.format = format; $f.i = i; $f.lasti = lasti; $f.p = p; $f.w = w; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	pp.prototype.doPrintf = function(format, a) { return this.$val.doPrintf(format, a); };
-	pp.ptr.prototype.doPrint = function(a, addspace, addnewline) {
-		var $ptr, _r$2, _r$3, _v, a, addnewline, addspace, arg, argNum, isString, p, prevString, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$2 = $f._r$2; _r$3 = $f._r$3; _v = $f._v; a = $f.a; addnewline = $f.addnewline; addspace = $f.addspace; arg = $f.arg; argNum = $f.argNum; isString = $f.isString; p = $f.p; prevString = $f.prevString; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		p = this;
-		prevString = false;
-		argNum = 0;
-		/* while (true) { */ case 1:
-			/* if (!(argNum < a.$length)) { break; } */ if(!(argNum < a.$length)) { $s = 2; continue; }
-			p.fmt.clearflags();
-			arg = ((argNum < 0 || argNum >= a.$length) ? $throwRuntimeError("index out of range") : a.$array[a.$offset + argNum]);
-			/* */ if (argNum > 0) { $s = 3; continue; }
-			/* */ $s = 4; continue;
-			/* if (argNum > 0) { */ case 3:
-				if (!(!($interfaceIsEqual(arg, $ifaceNil)))) { _v = false; $s = 5; continue s; }
-				_r$2 = reflect.TypeOf(arg).Kind(); /* */ $s = 6; case 6: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-				_v = _r$2 === 24; case 5:
-				isString = _v;
-				if (addspace || !isString && !prevString) {
-					(p.$ptr_buf || (p.$ptr_buf = new ptrType$1(function() { return this.$target.buf; }, function($v) { this.$target.buf = $v; }, p))).WriteByte(32);
-				}
-			/* } */ case 4:
-			_r$3 = p.printArg(arg, 118, 0); /* */ $s = 7; case 7: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
-			prevString = _r$3;
-			argNum = argNum + (1) >> 0;
-		/* } */ $s = 1; continue; case 2:
-		if (addnewline) {
-			(p.$ptr_buf || (p.$ptr_buf = new ptrType$1(function() { return this.$target.buf; }, function($v) { this.$target.buf = $v; }, p))).WriteByte(10);
-		}
-		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: pp.ptr.prototype.doPrint }; } $f.$ptr = $ptr; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._v = _v; $f.a = a; $f.addnewline = addnewline; $f.addspace = addspace; $f.arg = arg; $f.argNum = argNum; $f.isString = isString; $f.p = p; $f.prevString = prevString; $f.$s = $s; $f.$r = $r; return $f;
-	};
-	pp.prototype.doPrint = function(a, addspace, addnewline) { return this.$val.doPrint(a, addspace, addnewline); };
 	ss.ptr.prototype.Read = function(buf) {
 		var $ptr, _tmp, _tmp$1, buf, err, n, s;
 		n = 0;
@@ -18166,7 +18104,7 @@ $packages["image/color"] = (function() {
 	return $pkg;
 })();
 $packages["main"] = (function() {
-	var $pkg = {}, $init, fmt, chip8, js, color, rand, strconv, sync, time, machine, sliceType, sliceType$1, ptrType, funcType, funcType$1, sliceType$2, arrayType, ptrType$1, ptrType$2, screenColor, updateTitle, openFile, main, draw, start;
+	var $pkg = {}, $init, fmt, chip8, js, color, rand, strconv, sync, time, machine, mapType, structType, sliceType, sliceType$1, ptrType, funcType, funcType$1, sliceType$2, arrayType, ptrType$1, ptrType$2, screenColor, kbMapping, kb, updateTitle, openFile, main, draw, start;
 	fmt = $packages["fmt"];
 	chip8 = $packages["github.com/andreas-jonsson/chip8/chip8"];
 	js = $packages["github.com/gopherjs/gopherjs/js"];
@@ -18193,6 +18131,8 @@ $packages["main"] = (function() {
 		this.video = video_;
 		this.canvas = canvas_;
 	});
+	mapType = $mapType($Int, $Bool);
+	structType = $structType([{prop: "Mutex", name: "", pkg: "", typ: sync.Mutex, tag: ""}, {prop: "keys", name: "keys", pkg: "main", typ: mapType, tag: ""}]);
 	sliceType = $sliceType($Uint8);
 	sliceType$1 = $sliceType($emptyInterface);
 	ptrType = $ptrType(js.Object);
@@ -18225,9 +18165,13 @@ $packages["main"] = (function() {
 	};
 	machine.prototype.EndTone = function() { return this.$val.EndTone(); };
 	machine.ptr.prototype.Key = function(code) {
-		var $ptr, code, m;
+		var $ptr, _entry, code, m, $s, $deferred, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _entry = $f._entry; code = $f.code; m = $f.m; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
 		m = this;
-		return false;
+		$r = kb.Mutex.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		$deferred.push([$methodVal(kb.Mutex, "Unlock"), []]);
+		return (_entry = kb.keys[$Int.keyFor(((code < 0 || code >= kbMapping.length) ? $throwRuntimeError("index out of range") : kbMapping[code]))], _entry !== undefined ? _entry.v : false);
+		/* */ } return; } } catch(err) { $err = err; $s = -1; return false; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: machine.ptr.prototype.Key }; } $f.$ptr = $ptr; $f._entry = _entry; $f.code = code; $f.m = m; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
 	};
 	machine.prototype.Key = function(code) { return this.$val.Key(code); };
 	machine.ptr.prototype.Draw = function(video) {
@@ -18335,6 +18279,7 @@ $packages["main"] = (function() {
 		_r$2 = r.Intn(127); /* */ $s = 3; case 3: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
 		screenColor.B = (_r$2 << 24 >>> 24) + 128 << 24 >>> 24;
 		screenColor.A = 255;
+		kb.keys = {};
 		$global.addEventListener($externalize("load", $String), $externalize((function() {
 			var $ptr;
 			$go(start, []);
@@ -18385,18 +18330,20 @@ $packages["main"] = (function() {
 		$r = updateTitle(m[0]); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		document = $global.document;
 		document.onkeydown = $externalize((function(m, sys) { return function $b(e) {
-			var $ptr, _r$1, e, $s, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$1 = $f._r$1; e = $f.e; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-			_r$1 = fmt.Println(new sliceType$1([new $Int(($parseInt(e.keyCode) >> 0))])); /* */ $s = 1; case 1: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
-			_r$1;
-			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._r$1 = _r$1; $f.e = e; $f.$s = $s; $f.$r = $r; return $f;
+			var $ptr, _key, e, $s, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _key = $f._key; e = $f.e; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+			$r = kb.Mutex.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			_key = $parseInt(e.keyCode) >> 0; (kb.keys || $throwRuntimeError("assignment to entry in nil map"))[$Int.keyFor(_key)] = { k: _key, v: true };
+			$r = kb.Mutex.Unlock(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._key = _key; $f.e = e; $f.$s = $s; $f.$r = $r; return $f;
 		}; })(m, sys), funcType);
 		document.onkeyup = $externalize((function(m, sys) { return function $b(e) {
-			var $ptr, _r$1, e, $s, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$1 = $f._r$1; e = $f.e; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-			_r$1 = fmt.Println(new sliceType$1([new $Int(($parseInt(e.keyCode) >> 0))])); /* */ $s = 1; case 1: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
-			_r$1;
-			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._r$1 = _r$1; $f.e = e; $f.$s = $s; $f.$r = $r; return $f;
+			var $ptr, _key, e, $s, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _key = $f._key; e = $f.e; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+			$r = kb.Mutex.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			_key = $parseInt(e.keyCode) >> 0; (kb.keys || $throwRuntimeError("assignment to entry in nil map"))[$Int.keyFor(_key)] = { k: _key, v: false };
+			$r = kb.Mutex.Unlock(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._key = _key; $f.e = e; $f.$s = $s; $f.$r = $r; return $f;
 		}; })(m, sys), funcType);
 		canvas = document.createElement($externalize("canvas", $String));
 		m[0].canvas = canvas;
@@ -18451,6 +18398,8 @@ $packages["main"] = (function() {
 		$r = sync.$init(); /* */ $s = 7; case 7: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		$r = time.$init(); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		screenColor = new color.RGBA.ptr(0, 0, 0, 0);
+		kb = new structType.ptr(new sync.Mutex.ptr(0, 0), false);
+		kbMapping = $toNativeArray($kindInt, [88, 49, 50, 51, 81, 87, 69, 65, 83, 68, 90, 67, 52, 82, 70, 86]);
 		/* */ if ($pkg === $mainPkg) { $s = 9; continue; }
 		/* */ $s = 10; continue;
 		/* if ($pkg === $mainPkg) { */ case 9:
@@ -18468,4 +18417,4 @@ $go($mainPkg.$init, [], true);
 $flushConsole();
 
 }).call(this);
-//# sourceMappingURL=chippy.js.map
+//# sourceMappingURL=main.js.map
