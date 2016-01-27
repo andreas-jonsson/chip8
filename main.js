@@ -18104,7 +18104,7 @@ $packages["image/color"] = (function() {
 	return $pkg;
 })();
 $packages["main"] = (function() {
-	var $pkg = {}, $init, fmt, chip8, js, color, rand, strconv, sync, time, machine, mapType, structType, sliceType, sliceType$1, ptrType, funcType, funcType$1, sliceType$2, arrayType, ptrType$1, ptrType$2, screenColor, kbMapping, kb, updateTitle, openFile, main, draw, start;
+	var $pkg = {}, $init, fmt, chip8, js, color, rand, strconv, sync, time, machine, mapType, structType, sliceType, funcType, sliceType$1, sliceType$2, ptrType, funcType$1, arrayType, ptrType$1, ptrType$2, funcType$2, screenColor, kbMapping, kb, putPixel, main, updateScreen, updateTitle, openFile, start;
 	fmt = $packages["fmt"];
 	chip8 = $packages["github.com/andreas-jonsson/chip8/chip8"];
 	js = $packages["github.com/gopherjs/gopherjs/js"];
@@ -18113,35 +18113,36 @@ $packages["main"] = (function() {
 	strconv = $packages["strconv"];
 	sync = $packages["sync"];
 	time = $packages["time"];
-	machine = $pkg.machine = $newType(0, $kindStruct, "main.machine", "machine", "main", function(Mutex_, program_, programName_, cpuSpeedHz_, video_, canvas_) {
+	machine = $pkg.machine = $newType(0, $kindStruct, "main.machine", "machine", "main", function(program_, programName_, cpuSpeedHz_, video_, muteAudio_, canvas_) {
 		this.$val = this;
 		if (arguments.length === 0) {
-			this.Mutex = new sync.Mutex.ptr(0, 0);
 			this.program = sliceType.nil;
 			this.programName = "";
 			this.cpuSpeedHz = new time.Duration(0, 0);
 			this.video = arrayType.zero();
+			this.muteAudio = $throwNilPointerError;
 			this.canvas = null;
 			return;
 		}
-		this.Mutex = Mutex_;
 		this.program = program_;
 		this.programName = programName_;
 		this.cpuSpeedHz = cpuSpeedHz_;
 		this.video = video_;
+		this.muteAudio = muteAudio_;
 		this.canvas = canvas_;
 	});
 	mapType = $mapType($Int, $Bool);
 	structType = $structType([{prop: "Mutex", name: "", pkg: "", typ: sync.Mutex, tag: ""}, {prop: "keys", name: "keys", pkg: "main", typ: mapType, tag: ""}]);
 	sliceType = $sliceType($Uint8);
-	sliceType$1 = $sliceType($emptyInterface);
+	funcType = $funcType([], [], false);
+	sliceType$1 = $sliceType($Uint);
+	sliceType$2 = $sliceType($emptyInterface);
 	ptrType = $ptrType(js.Object);
-	funcType = $funcType([ptrType], [], false);
-	funcType$1 = $funcType([], [], false);
-	sliceType$2 = $sliceType($Uint);
+	funcType$1 = $funcType([ptrType], [], false);
 	arrayType = $arrayType($Uint8, 98304);
 	ptrType$1 = $ptrType(rand.Rand);
 	ptrType$2 = $ptrType(machine);
+	funcType$2 = $funcType([$Bool], [], false);
 	machine.ptr.prototype.Load = function(memory) {
 		var $ptr, m, memory;
 		m = this;
@@ -18155,13 +18156,19 @@ $packages["main"] = (function() {
 	};
 	machine.prototype.Rand = function() { return this.$val.Rand(); };
 	machine.ptr.prototype.BeginTone = function() {
-		var $ptr, m;
+		var $ptr, m, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; m = $f.m; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		m = this;
+		$r = m.muteAudio(false); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: machine.ptr.prototype.BeginTone }; } $f.$ptr = $ptr; $f.m = m; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	machine.prototype.BeginTone = function() { return this.$val.BeginTone(); };
 	machine.ptr.prototype.EndTone = function() {
-		var $ptr, m;
+		var $ptr, m, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; m = $f.m; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 		m = this;
+		$r = m.muteAudio(true); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: machine.ptr.prototype.EndTone }; } $f.$ptr = $ptr; $f.m = m; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	machine.prototype.EndTone = function() { return this.$val.EndTone(); };
 	machine.ptr.prototype.Key = function(code) {
@@ -18174,60 +18181,101 @@ $packages["main"] = (function() {
 		/* */ } return; } } catch(err) { $err = err; $s = -1; return false; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: machine.ptr.prototype.Key }; } $f.$ptr = $ptr; $f._entry = _entry; $f.code = code; $f.m = m; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
 	};
 	machine.prototype.Key = function(code) { return this.$val.Key(code); };
-	machine.ptr.prototype.Draw = function(video) {
-		var $ptr, _i, _ref, destX, destY, i, i$1, m, putPixel, video, x, x$1, x$2, y, $s, $deferred, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _i = $f._i; _ref = $f._ref; destX = $f.destX; destY = $f.destY; i = $f.i; i$1 = $f.i$1; m = $f.m; putPixel = $f.putPixel; video = $f.video; x = $f.x; x$1 = $f.x$1; x$2 = $f.x$2; y = $f.y; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
-		m = this;
-		$r = m.Mutex.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$deferred.push([$methodVal(m.Mutex, "Unlock"), []]);
-		putPixel = (function(x, y, buffer) {
-			var $ptr, buffer, i, x, x$1, x$2, y;
-			i = $imul(((($imul(($imul(y, 64)), 4)) + x >> 0)), 3);
+	putPixel = function(x, y, buffer, fill) {
+		var $ptr, buffer, fill, i, x, x$1, x$2, x$3, x$4, y;
+		i = $imul(((($imul(($imul(y, 64)), 4)) + x >> 0)), 3);
+		if (fill) {
 			((i < 0 || i >= buffer.$length) ? $throwRuntimeError("index out of range") : buffer.$array[buffer.$offset + i] = screenColor.B);
 			(x$1 = i + 1 >> 0, ((x$1 < 0 || x$1 >= buffer.$length) ? $throwRuntimeError("index out of range") : buffer.$array[buffer.$offset + x$1] = screenColor.G));
 			(x$2 = i + 2 >> 0, ((x$2 < 0 || x$2 >= buffer.$length) ? $throwRuntimeError("index out of range") : buffer.$array[buffer.$offset + x$2] = screenColor.R));
-		});
-		destY = 0;
-		destX = 0;
-		_ref = m.video;
-		_i = 0;
-		while (true) {
-			if (!(_i < 98304)) { break; }
-			i = _i;
-			(x = m.video, ((i < 0 || i >= x.length) ? $throwRuntimeError("index out of range") : x[i] = 0));
-			_i++;
+		} else {
+			((i < 0 || i >= buffer.$length) ? $throwRuntimeError("index out of range") : buffer.$array[buffer.$offset + i] = 0);
+			(x$3 = i + 1 >> 0, ((x$3 < 0 || x$3 >= buffer.$length) ? $throwRuntimeError("index out of range") : buffer.$array[buffer.$offset + x$3] = 0));
+			(x$4 = i + 2 >> 0, ((x$4 < 0 || x$4 >= buffer.$length) ? $throwRuntimeError("index out of range") : buffer.$array[buffer.$offset + x$4] = 0));
 		}
+	};
+	machine.ptr.prototype.Draw = function(video) {
+		var $ptr, _tmp, _tmp$1, destX, destY, i, j, j$1, m, video, x, x$1, y;
+		m = this;
+		_tmp = 0;
+		_tmp$1 = 0;
+		destY = _tmp;
+		destX = _tmp$1;
 		y = 0;
-		/* while (true) { */ case 2:
-			/* if (!(y < 32)) { break; } */ if(!(y < 32)) { $s = 3; continue; }
+		while (true) {
+			if (!(y < 32)) { break; }
 			destY = $imul(y, 4);
-			i$1 = 0;
-			/* while (true) { */ case 4:
-				/* if (!(i$1 < 3)) { break; } */ if(!(i$1 < 3)) { $s = 5; continue; }
-				x$1 = 0;
-				/* while (true) { */ case 6:
-					/* if (!(x$1 < 64)) { break; } */ if(!(x$1 < 64)) { $s = 7; continue; }
-					destX = $imul(x$1, 4);
-					/* */ if ((x$2 = ($imul(y, 64)) + x$1 >> 0, ((x$2 < 0 || x$2 >= video.$length) ? $throwRuntimeError("index out of range") : video.$array[video.$offset + x$2])) > 0) { $s = 8; continue; }
-					/* */ $s = 9; continue;
-					/* if ((x$2 = ($imul(y, 64)) + x$1 >> 0, ((x$2 < 0 || x$2 >= video.$length) ? $throwRuntimeError("index out of range") : video.$array[video.$offset + x$2])) > 0) { */ case 8:
-						$r = putPixel(destX, destY + i$1 >> 0, new sliceType(m.video)); /* */ $s = 10; case 10: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-						$r = putPixel(destX + 1 >> 0, destY + i$1 >> 0, new sliceType(m.video)); /* */ $s = 11; case 11: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-						$r = putPixel(destX + 2 >> 0, destY + i$1 >> 0, new sliceType(m.video)); /* */ $s = 12; case 12: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-					/* } */ case 9:
-					x$1 = x$1 + (1) >> 0;
-				/* } */ $s = 6; continue; case 7:
-				i$1 = i$1 + (1) >> 0;
-			/* } */ $s = 4; continue; case 5:
+			i = 0;
+			while (true) {
+				if (!(i < 3)) { break; }
+				x = 0;
+				while (true) {
+					if (!(x < 64)) { break; }
+					destX = $imul(x, 4);
+					if ((x$1 = ($imul(y, 64)) + x >> 0, ((x$1 < 0 || x$1 >= video.$length) ? $throwRuntimeError("index out of range") : video.$array[video.$offset + x$1])) > 0) {
+						j = 0;
+						while (true) {
+							if (!(j < 3)) { break; }
+							putPixel(destX + j >> 0, destY + i >> 0, new sliceType(m.video), true);
+							j = j + (1) >> 0;
+						}
+					} else {
+						j$1 = 0;
+						while (true) {
+							if (!(j$1 < 4)) { break; }
+							putPixel(destX + j$1 >> 0, destY + i >> 0, new sliceType(m.video), false);
+							j$1 = j$1 + (1) >> 0;
+						}
+					}
+					x = x + (1) >> 0;
+				}
+				i = i + (1) >> 0;
+			}
 			y = y + (1) >> 0;
-		/* } */ $s = 2; continue; case 3:
-		/* */ $s = -1; case -1: } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: machine.ptr.prototype.Draw }; } $f.$ptr = $ptr; $f._i = _i; $f._ref = _ref; $f.destX = destX; $f.destY = destY; $f.i = i; $f.i$1 = i$1; $f.m = m; $f.putPixel = putPixel; $f.video = video; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.y = y; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
+		}
+		updateScreen(m.canvas, new sliceType(m.video));
 	};
 	machine.prototype.Draw = function(video) { return this.$val.Draw(video); };
+	main = function() {
+		var $ptr, _r, _r$1, _r$2, r, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; r = $f.r; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		r = rand.New(rand.NewSource(time.Now().UnixNano()));
+		_r = r.Intn(127); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		screenColor.R = (_r << 24 >>> 24) + 128 << 24 >>> 24;
+		_r$1 = r.Intn(127); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+		screenColor.G = (_r$1 << 24 >>> 24) + 128 << 24 >>> 24;
+		_r$2 = r.Intn(127); /* */ $s = 3; case 3: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+		screenColor.B = (_r$2 << 24 >>> 24) + 128 << 24 >>> 24;
+		screenColor.A = 255;
+		kb.keys = {};
+		$global.addEventListener($externalize("load", $String), $externalize((function() {
+			var $ptr;
+			$go(start, []);
+		}), funcType));
+		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: main }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.r = r; $f.$s = $s; $f.$r = $r; return $f;
+	};
+	updateScreen = function(canvas, video) {
+		var $ptr, _q, arrBuf, buf, buf32, buf8, canvas, ctx, data, i, img, video, x, x$1, x$2;
+		ctx = canvas.getContext($externalize("2d", $String));
+		img = ctx.getImageData(0, 0, 256, 128);
+		data = img.data;
+		arrBuf = new ($global.ArrayBuffer)($parseInt(data.length));
+		buf8 = new ($global.Uint8ClampedArray)(arrBuf);
+		buf32 = new ($global.Uint32Array)(arrBuf);
+		buf = $assertType($internalize(buf32, $emptyInterface), sliceType$1);
+		i = 0;
+		while (true) {
+			if (!(i < video.$length)) { break; }
+			(x$2 = (_q = i / 3, (_q === _q && _q !== 1/0 && _q !== -1/0) ? _q >> 0 : $throwRuntimeError("integer divide by zero")), ((x$2 < 0 || x$2 >= buf.$length) ? $throwRuntimeError("index out of range") : buf.$array[buf.$offset + x$2] = ((((((4278190080 | (((((i < 0 || i >= video.$length) ? $throwRuntimeError("index out of range") : video.$array[video.$offset + i]) >>> 0) << 16 >>> 0))) >>> 0) | ((((x = i + 1 >> 0, ((x < 0 || x >= video.$length) ? $throwRuntimeError("index out of range") : video.$array[video.$offset + x])) >>> 0) << 8 >>> 0))) >>> 0) | ((x$1 = i + 2 >> 0, ((x$1 < 0 || x$1 >= video.$length) ? $throwRuntimeError("index out of range") : video.$array[video.$offset + x$1])) >>> 0)) >>> 0)));
+			i = i + (3) >> 0;
+		}
+		data.set(buf8);
+		ctx.putImageData(img, 0, 0);
+	};
 	updateTitle = function(m) {
 		var $ptr, _r, m, title, $s, $r;
 		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; m = $f.m; title = $f.title; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		_r = fmt.Sprintf("Chippy - %dHz - %s", new sliceType$1([m.cpuSpeedHz, new $String(m.programName)])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
+		_r = fmt.Sprintf("Chippy - %dHz - %s", new sliceType$2([m.cpuSpeedHz, new $String(m.programName)])); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		title = _r;
 		$global.document.title = $externalize(title, $String);
 		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: updateTitle }; } $f.$ptr = $ptr; $f._r = _r; $f.m = m; $f.title = title; $f.$s = $s; $f.$r = $r; return $f;
@@ -18249,7 +18297,7 @@ $packages["main"] = (function() {
 			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; event = $f.event; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 			$r = $send(filec[0], inputElem[0].files[0]); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.event = event; $f.$s = $s; $f.$r = $r; return $f;
-		}; })(bufc, filec, inputElem, reader), funcType);
+		}; })(bufc, filec, inputElem, reader), funcType$1);
 		_r = $recv(filec[0]); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		file = _r[0];
 		name = $internalize(file.name, $String);
@@ -18260,7 +18308,7 @@ $packages["main"] = (function() {
 			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; event = $f.event; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 			$r = $send(bufc[0], $assertType($internalize(new ($global.Uint8Array)(reader[0].result), $emptyInterface), sliceType)); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.event = event; $f.$s = $s; $f.$r = $r; return $f;
-		}; })(bufc, filec, inputElem, reader), funcType);
+		}; })(bufc, filec, inputElem, reader), funcType$1);
 		reader[0].readAsArrayBuffer(file);
 		_r$1 = $recv(bufc[0]); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
 		data = _r$1[0];
@@ -18268,124 +18316,103 @@ $packages["main"] = (function() {
 		return [name, data];
 		/* */ } return; } if ($f === undefined) { $f = { $blk: openFile }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f.bufc = bufc; $f.data = data; $f.document = document; $f.file = file; $f.filec = filec; $f.inputElem = inputElem; $f.name = name; $f.reader = reader; $f.$s = $s; $f.$r = $r; return $f;
 	};
-	main = function() {
-		var $ptr, _r, _r$1, _r$2, r, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _r$2 = $f._r$2; r = $f.r; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-		r = rand.New(rand.NewSource(time.Now().UnixNano()));
-		_r = r.Intn(127); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
-		screenColor.R = (_r << 24 >>> 24) + 128 << 24 >>> 24;
-		_r$1 = r.Intn(127); /* */ $s = 2; case 2: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
-		screenColor.G = (_r$1 << 24 >>> 24) + 128 << 24 >>> 24;
-		_r$2 = r.Intn(127); /* */ $s = 3; case 3: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-		screenColor.B = (_r$2 << 24 >>> 24) + 128 << 24 >>> 24;
-		screenColor.A = 255;
-		kb.keys = {};
-		$global.addEventListener($externalize("load", $String), $externalize((function() {
-			var $ptr;
-			$go(start, []);
-		}), funcType$1));
-		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: main }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._r$2 = _r$2; $f.r = r; $f.$s = $s; $f.$r = $r; return $f;
-	};
-	draw = function(m, sys) {
-		var $ptr, _q, arrBuf, buf, buf32, buf8, ctx, data, i, img, m, sys, x, x$1, x$2, x$3, x$4, x$5, $s, $deferred, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _q = $f._q; arrBuf = $f.arrBuf; buf = $f.buf; buf32 = $f.buf32; buf8 = $f.buf8; ctx = $f.ctx; data = $f.data; i = $f.i; img = $f.img; m = $f.m; sys = $f.sys; x = $f.x; x$1 = $f.x$1; x$2 = $f.x$2; x$3 = $f.x$3; x$4 = $f.x$4; x$5 = $f.x$5; $s = $f.$s; $deferred = $f.$deferred; $r = $f.$r; } var $err = null; try { s: while (true) { switch ($s) { case 0: $deferred = []; $deferred.index = $curGoroutine.deferStack.length; $curGoroutine.deferStack.push($deferred);
-		m = [m];
-		sys = [sys];
-		$r = sys[0].Refresh(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$r = m[0].Mutex.Lock(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-		$deferred.push([$methodVal(m[0].Mutex, "Unlock"), []]);
-		ctx = m[0].canvas.getContext($externalize("2d", $String));
-		img = ctx.getImageData(0, 0, 256, 128);
-		data = img.data;
-		arrBuf = new ($global.ArrayBuffer)($parseInt(data.length));
-		buf8 = new ($global.Uint8ClampedArray)(arrBuf);
-		buf32 = new ($global.Uint32Array)(arrBuf);
-		buf = $assertType($internalize(buf32, $emptyInterface), sliceType$2);
-		i = 0;
-		while (true) {
-			if (!(i < 98304)) { break; }
-			(x$5 = (_q = i / 3, (_q === _q && _q !== 1/0 && _q !== -1/0) ? _q >> 0 : $throwRuntimeError("integer divide by zero")), ((x$5 < 0 || x$5 >= buf.$length) ? $throwRuntimeError("index out of range") : buf.$array[buf.$offset + x$5] = ((((((4278190080 | ((((x = m[0].video, ((i < 0 || i >= x.length) ? $throwRuntimeError("index out of range") : x[i])) >>> 0) << 16 >>> 0))) >>> 0) | ((((x$1 = m[0].video, x$2 = i + 1 >> 0, ((x$2 < 0 || x$2 >= x$1.length) ? $throwRuntimeError("index out of range") : x$1[x$2])) >>> 0) << 8 >>> 0))) >>> 0) | ((x$3 = m[0].video, x$4 = i + 2 >> 0, ((x$4 < 0 || x$4 >= x$3.length) ? $throwRuntimeError("index out of range") : x$3[x$4])) >>> 0)) >>> 0)));
-			i = i + (3) >> 0;
-		}
-		data.set(buf8);
-		ctx.putImageData(img, 0, 0);
-		$global.requestAnimationFrame($externalize((function(m, sys) { return function $b() {
-			var $ptr, $s, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-			$r = draw(m[0], sys[0]); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.$s = $s; $f.$r = $r; return $f;
-		}; })(m, sys), funcType$1));
-		/* */ $s = -1; case -1: } return; } } catch(err) { $err = err; $s = -1; } finally { $callDeferred($deferred, $err); if($curGoroutine.asleep) { if ($f === undefined) { $f = { $blk: draw }; } $f.$ptr = $ptr; $f._q = _q; $f.arrBuf = arrBuf; $f.buf = buf; $f.buf32 = buf32; $f.buf8 = buf8; $f.ctx = ctx; $f.data = data; $f.i = i; $f.img = img; $f.m = m; $f.sys = sys; $f.x = x; $f.x$1 = x$1; $f.x$2 = x$2; $f.x$3 = x$3; $f.x$4 = x$4; $f.x$5 = x$5; $f.$s = $s; $f.$deferred = $deferred; $f.$r = $r; return $f; } }
-	};
 	start = function() {
-		var $ptr, _r, _r$1, _tuple, buffer, canvas, document, m, name, sys, $s, $r;
-		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _r$1 = $f._r$1; _tuple = $f._tuple; buffer = $f.buffer; canvas = $f.canvas; document = $f.document; m = $f.m; name = $f.name; sys = $f.sys; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		var $ptr, _r, _tuple, audioClass, audioContext, buffer, canvas, document, gain, m, name, oscillator, $s, $r;
+		/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r = $f._r; _tuple = $f._tuple; audioClass = $f.audioClass; audioContext = $f.audioContext; buffer = $f.buffer; canvas = $f.canvas; document = $f.document; gain = $f.gain; m = $f.m; name = $f.name; oscillator = $f.oscillator; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+		audioClass = [audioClass];
+		audioContext = [audioContext];
+		gain = [gain];
 		m = [m];
-		sys = [sys];
 		_r = openFile(); /* */ $s = 1; case 1: if($c) { $c = false; _r = _r.$blk(); } if (_r && _r.$blk !== undefined) { break s; }
 		_tuple = _r;
 		name = _tuple[0];
 		buffer = _tuple[1];
-		m[0] = new machine.ptr(new sync.Mutex.ptr(0, 0), buffer, name, new time.Duration(0, 500), arrayType.zero(), null);
-		$r = updateTitle(m[0]); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		document = $global.document;
-		document.onkeydown = $externalize((function(m, sys) { return function $b(e) {
+		document.onkeydown = $externalize((function(audioClass, audioContext, gain, m) { return function $b(e) {
 			var $ptr, _key, e, $s, $r;
 			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _key = $f._key; e = $f.e; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 			$r = kb.Mutex.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_key = $parseInt(e.keyCode) >> 0; (kb.keys || $throwRuntimeError("assignment to entry in nil map"))[$Int.keyFor(_key)] = { k: _key, v: true };
 			$r = kb.Mutex.Unlock(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._key = _key; $f.e = e; $f.$s = $s; $f.$r = $r; return $f;
-		}; })(m, sys), funcType);
-		document.onkeyup = $externalize((function(m, sys) { return function $b(e) {
+		}; })(audioClass, audioContext, gain, m), funcType$1);
+		document.onkeyup = $externalize((function(audioClass, audioContext, gain, m) { return function $b(e) {
 			var $ptr, _key, e, $s, $r;
 			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _key = $f._key; e = $f.e; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
 			$r = kb.Mutex.Lock(); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			_key = $parseInt(e.keyCode) >> 0; (kb.keys || $throwRuntimeError("assignment to entry in nil map"))[$Int.keyFor(_key)] = { k: _key, v: false };
 			$r = kb.Mutex.Unlock(); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._key = _key; $f.e = e; $f.$s = $s; $f.$r = $r; return $f;
-		}; })(m, sys), funcType);
+		}; })(audioClass, audioContext, gain, m), funcType$1);
 		canvas = document.createElement($externalize("canvas", $String));
-		m[0].canvas = canvas;
 		canvas.setAttribute($externalize("width", $String), $externalize(strconv.Itoa(256), $String));
 		canvas.setAttribute($externalize("height", $String), $externalize(strconv.Itoa(128), $String));
-		canvas.style.width = $externalize(strconv.Itoa(512) + "px", $String);
-		canvas.style.height = $externalize(strconv.Itoa(256) + "px", $String);
+		canvas.style.width = $externalize(strconv.Itoa(768) + "px", $String);
+		canvas.style.height = $externalize(strconv.Itoa(384) + "px", $String);
 		document.body.appendChild(canvas);
-		_r$1 = chip8.NewSystem(m[0]); /* */ $s = 3; case 3: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
-		sys[0] = _r$1;
-		$go((function(m, sys) { return function $b() {
-			var $ptr, _ok, _r$2, _r$3, _ref, _tuple$1, err, tickCPU, $s, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _ok = $f._ok; _r$2 = $f._r$2; _r$3 = $f._r$3; _ref = $f._ref; _tuple$1 = $f._tuple$1; err = $f.err; tickCPU = $f.tickCPU; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-			tickCPU = time.Tick($div64(new time.Duration(0, 1000000000), m[0].cpuSpeedHz, false));
-			_ref = tickCPU;
-			/* while (true) { */ case 1:
-				_r$2 = $recv(_ref); /* */ $s = 3; case 3: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
-				_tuple$1 = _r$2;
-				_ok = _tuple$1[1];
-				if (!_ok) {
-					/* break; */ $s = 2; continue;
+		m[0] = new machine.ptr(buffer, name, new time.Duration(0, 500), arrayType.zero(), $throwNilPointerError, canvas);
+		$r = updateTitle(m[0]); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+		audioClass[0] = $global.AudioContext;
+		if (!(audioClass[0] === null)) {
+			audioClass[0] = $global.webkitAudioContext;
+		}
+		if (!(audioClass[0] === null)) {
+			audioContext[0] = new (audioClass[0])();
+			oscillator = audioContext[0].createOscillator();
+			gain[0] = audioContext[0].createGain();
+			oscillator.connect(gain[0]);
+			oscillator.type = $externalize("square", $String);
+			oscillator.frequency.value = 500;
+			oscillator.start($externalize("0", $String));
+			m[0].muteAudio = (function(audioClass, audioContext, gain, m) { return function(mute) {
+				var $ptr, dest, mute;
+				if (!(audioClass[0] === null)) {
+					dest = audioContext[0].destination;
+					if (mute) {
+						gain[0].disconnect(dest);
+					} else {
+						gain[0].connect(dest);
+					}
 				}
-				_r$3 = sys[0].Step(); /* */ $s = 4; case 4: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
-				err = _r$3;
-				/* */ if (!($interfaceIsEqual(err, $ifaceNil))) { $s = 5; continue; }
-				/* */ $s = 6; continue;
-				/* if (!($interfaceIsEqual(err, $ifaceNil))) { */ case 5:
-					$panic(err);
-				/* } */ case 6:
-			/* } */ $s = 1; continue; case 2:
-			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._ok = _ok; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._ref = _ref; $f._tuple$1 = _tuple$1; $f.err = err; $f.tickCPU = tickCPU; $f.$s = $s; $f.$r = $r; return $f;
-		}; })(m, sys), []);
-		$global.requestAnimationFrame($externalize((function(m, sys) { return function $b() {
-			var $ptr, $s, $r;
-			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
-			$r = draw(m[0], sys[0]); /* */ $s = 1; case 1: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
-			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f.$s = $s; $f.$r = $r; return $f;
-		}; })(m, sys), funcType$1));
-		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: start }; } $f.$ptr = $ptr; $f._r = _r; $f._r$1 = _r$1; $f._tuple = _tuple; $f.buffer = buffer; $f.canvas = canvas; $f.document = document; $f.m = m; $f.name = name; $f.sys = sys; $f.$s = $s; $f.$r = $r; return $f;
+			}; })(audioClass, audioContext, gain, m);
+		} else {
+			m[0].muteAudio = (function(audioClass, audioContext, gain, m) { return function(mute) {
+				var $ptr, mute;
+			}; })(audioClass, audioContext, gain, m);
+		}
+		$go((function(audioClass, audioContext, gain, m) { return function $b() {
+			var $ptr, _r$1, _r$2, _r$3, _r$4, _selection, err, sys, tickCPU, tickRender, $s, $r;
+			/* */ $s = 0; var $f, $c = false; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $ptr = $f.$ptr; _r$1 = $f._r$1; _r$2 = $f._r$2; _r$3 = $f._r$3; _r$4 = $f._r$4; _selection = $f._selection; err = $f.err; sys = $f.sys; tickCPU = $f.tickCPU; tickRender = $f.tickRender; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
+			_r$1 = chip8.NewSystem(m[0]); /* */ $s = 1; case 1: if($c) { $c = false; _r$1 = _r$1.$blk(); } if (_r$1 && _r$1.$blk !== undefined) { break s; }
+			sys = _r$1;
+			tickRender = time.Tick(new time.Duration(0, 31250000));
+			tickCPU = time.Tick($div64(new time.Duration(0, 1000000000), m[0].cpuSpeedHz, false));
+			/* while (true) { */ case 2:
+				_r$2 = $select([[tickRender], [tickCPU]]); /* */ $s = 4; case 4: if($c) { $c = false; _r$2 = _r$2.$blk(); } if (_r$2 && _r$2.$blk !== undefined) { break s; }
+				_selection = _r$2;
+				/* */ if (_selection[0] === 0) { $s = 5; continue; }
+				/* */ if (_selection[0] === 1) { $s = 6; continue; }
+				/* */ $s = 7; continue;
+				/* if (_selection[0] === 0) { */ case 5:
+					$r = sys.Refresh(); /* */ $s = 8; case 8: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
+					$s = 7; continue;
+				/* } else if (_selection[0] === 1) { */ case 6:
+					_r$3 = sys.Step(); /* */ $s = 9; case 9: if($c) { $c = false; _r$3 = _r$3.$blk(); } if (_r$3 && _r$3.$blk !== undefined) { break s; }
+					err = _r$3;
+					/* */ if (!($interfaceIsEqual(err, $ifaceNil))) { $s = 10; continue; }
+					/* */ $s = 11; continue;
+					/* if (!($interfaceIsEqual(err, $ifaceNil))) { */ case 10:
+						_r$4 = err.Error(); /* */ $s = 12; case 12: if($c) { $c = false; _r$4 = _r$4.$blk(); } if (_r$4 && _r$4.$blk !== undefined) { break s; }
+						$global.alert($externalize(_r$4, $String));
+					/* } */ case 11:
+				/* } */ case 7:
+			/* } */ $s = 2; continue; case 3:
+			/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: $b }; } $f.$ptr = $ptr; $f._r$1 = _r$1; $f._r$2 = _r$2; $f._r$3 = _r$3; $f._r$4 = _r$4; $f._selection = _selection; $f.err = err; $f.sys = sys; $f.tickCPU = tickCPU; $f.tickRender = tickRender; $f.$s = $s; $f.$r = $r; return $f;
+		}; })(audioClass, audioContext, gain, m), []);
+		/* */ $s = -1; case -1: } return; } if ($f === undefined) { $f = { $blk: start }; } $f.$ptr = $ptr; $f._r = _r; $f._tuple = _tuple; $f.audioClass = audioClass; $f.audioContext = audioContext; $f.buffer = buffer; $f.canvas = canvas; $f.document = document; $f.gain = gain; $f.m = m; $f.name = name; $f.oscillator = oscillator; $f.$s = $s; $f.$r = $r; return $f;
 	};
 	ptrType$2.methods = [{prop: "Load", name: "Load", pkg: "", typ: $funcType([sliceType], [], false)}, {prop: "Rand", name: "Rand", pkg: "", typ: $funcType([], [ptrType$1], false)}, {prop: "BeginTone", name: "BeginTone", pkg: "", typ: $funcType([], [], false)}, {prop: "EndTone", name: "EndTone", pkg: "", typ: $funcType([], [], false)}, {prop: "Key", name: "Key", pkg: "", typ: $funcType([$Int], [$Bool], false)}, {prop: "Draw", name: "Draw", pkg: "", typ: $funcType([sliceType], [], false)}];
-	machine.init([{prop: "Mutex", name: "", pkg: "", typ: sync.Mutex, tag: ""}, {prop: "program", name: "program", pkg: "main", typ: sliceType, tag: ""}, {prop: "programName", name: "programName", pkg: "main", typ: $String, tag: ""}, {prop: "cpuSpeedHz", name: "cpuSpeedHz", pkg: "main", typ: time.Duration, tag: ""}, {prop: "video", name: "video", pkg: "main", typ: arrayType, tag: ""}, {prop: "canvas", name: "canvas", pkg: "main", typ: ptrType, tag: ""}]);
+	machine.init([{prop: "program", name: "program", pkg: "main", typ: sliceType, tag: ""}, {prop: "programName", name: "programName", pkg: "main", typ: $String, tag: ""}, {prop: "cpuSpeedHz", name: "cpuSpeedHz", pkg: "main", typ: time.Duration, tag: ""}, {prop: "video", name: "video", pkg: "main", typ: arrayType, tag: ""}, {prop: "muteAudio", name: "muteAudio", pkg: "main", typ: funcType$2, tag: ""}, {prop: "canvas", name: "canvas", pkg: "main", typ: ptrType, tag: ""}]);
 	$init = function() {
 		$pkg.$init = function() {};
 		/* */ var $f, $c = false, $s = 0, $r; if (this !== undefined && this.$blk !== undefined) { $f = this; $c = true; $s = $f.$s; $r = $f.$r; } s: while (true) { switch ($s) { case 0:
