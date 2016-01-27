@@ -171,6 +171,7 @@ func openFile() (string, []byte) {
 	document := js.Global.Get("document")
 	inputElem := document.Call("createElement", "input")
 	inputElem.Call("setAttribute", "type", "file")
+	inputElem.Call("setAttribute", "accept", ".ch8")
 	document.Get("body").Call("appendChild", inputElem)
 
 	filec := make(chan *js.Object, 1)
