@@ -18353,10 +18353,10 @@ $packages["main"] = (function() {
 		m[0] = new machine.ptr(buffer, name, new time.Duration(0, 500), arrayType.zero(), $throwNilPointerError, canvas);
 		$r = updateTitle(m[0]); /* */ $s = 2; case 2: if($c) { $c = false; $r = $r.$blk(); } if ($r && $r.$blk !== undefined) { break s; }
 		audioClass[0] = $global.AudioContext;
-		if (!(audioClass[0] === null)) {
+		if ($internalize(audioClass[0], $String) === "undefined") {
 			audioClass[0] = $global.webkitAudioContext;
 		}
-		if (!(audioClass[0] === null)) {
+		if (!($internalize(audioClass[0], $String) === "undefined")) {
 			audioContext[0] = new (audioClass[0])();
 			oscillator = audioContext[0].createOscillator();
 			gain[0] = audioContext[0].createGain();
