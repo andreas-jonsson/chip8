@@ -223,11 +223,11 @@ func start() {
 
 	// Create audio.
 	audioClass := js.Global.Get("AudioContext")
-	if audioClass != nil {
+	if audioClass.String() == "undefined" {
 		audioClass = js.Global.Get("webkitAudioContext")
 	}
 
-	if audioClass != nil {
+	if audioClass.String() != "undefined" {
 		audioContext := audioClass.New()
 		oscillator := audioContext.Call("createOscillator")
 		gain := audioContext.Call("createGain")
