@@ -65,12 +65,11 @@ var kb struct {
 }
 
 type machine struct {
-	sync.Mutex
-
 	program     []byte
 	programName string
 	cpuSpeedHz  time.Duration
 	video       [64 * 4 * 32 * 4 * 3]byte
+	muteAudio   func(bool)
 	canvas      *js.Object
 }
 
@@ -83,9 +82,11 @@ func (m *machine) Rand() *rand.Rand {
 }
 
 func (m *machine) BeginTone() {
+	m.muteAudio(false)
 }
 
 func (m *machine) EndTone() {
+	m.muteAudio(true)
 }
 
 func (m *machine) Key(code int) bool {
@@ -94,38 +95,71 @@ func (m *machine) Key(code int) bool {
 	return kb.keys[kbMapping[code]]
 }
 
-func (m *machine) Draw(video []byte) {
-	m.Lock()
-	defer m.Unlock()
-
-	putPixel := func(x, y int, buffer []byte) {
-		i := (y*64*4 + x) * 3
+func putPixel(x, y int, buffer []byte, fill bool) {
+	i := (y*64*4 + x) * 3
+	if fill {
 		buffer[i] = screenColor.B
 		buffer[i+1] = screenColor.G
 		buffer[i+2] = screenColor.R
+	} else {
+		buffer[i] = 0
+		buffer[i+1] = 0
+		buffer[i+2] = 0
 	}
+}
 
-	destY := 0
-	destX := 0
-
-	for i := range m.video {
-		m.video[i] = 0
-	}
-
+func (m *machine) Draw(video []byte) {
+	destY, destX := 0, 0
 	for y := 0; y < 32; y++ {
 		destY = y * 4
 		for i := 0; i < 3; i++ {
 			for x := 0; x < 64; x++ {
 				destX = x * 4
 				if video[y*64+x] > 0 {
-					putPixel(destX, destY+i, m.video[:])
-					putPixel(destX+1, destY+i, m.video[:])
-					putPixel(destX+2, destY+i, m.video[:])
+					for j := 0; j < 3; j++ {
+						putPixel(destX+j, destY+i, m.video[:], true)
+					}
+				} else {
+					for j := 0; j < 4; j++ {
+						putPixel(destX+j, destY+i, m.video[:], false)
+					}
 				}
-
 			}
 		}
 	}
+
+	updateScreen(m.canvas, m.video[:])
+}
+
+func main() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	screenColor.R = uint8(r.Intn(127)) + 128
+	screenColor.G = uint8(r.Intn(127)) + 128
+	screenColor.B = uint8(r.Intn(127)) + 128
+	screenColor.A = 255
+
+	kb.keys = make(map[int]bool)
+
+	js.Global.Call("addEventListener", "load", func() { go start() })
+}
+
+func updateScreen(canvas *js.Object, video []byte) {
+	ctx := canvas.Call("getContext", "2d")
+	img := ctx.Call("getImageData", 0, 0, imgWidth, imgHeight)
+	data := img.Get("data")
+
+	arrBuf := js.Global.Get("ArrayBuffer").New(data.Length())
+	buf8 := js.Global.Get("Uint8ClampedArray").New(arrBuf)
+	buf32 := js.Global.Get("Uint32Array").New(arrBuf)
+
+	buf := buf32.Interface().([]uint)
+
+	for i := 0; i < len(video); i += 3 {
+		buf[i/3] = 0xFF000000 | (uint(video[i]) << 16) | (uint(video[i+1]) << 8) | uint(video[i+2])
+	}
+
+	data.Call("set", buf8)
+	ctx.Call("putImageData", img, 0, 0)
 }
 
 func updateTitle(m *machine) {
@@ -159,49 +193,8 @@ func openFile() (string, []byte) {
 	return name, data
 }
 
-func main() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	screenColor.R = uint8(r.Intn(127)) + 128
-	screenColor.G = uint8(r.Intn(127)) + 128
-	screenColor.B = uint8(r.Intn(127)) + 128
-	screenColor.A = 255
-
-	kb.keys = make(map[int]bool)
-
-	js.Global.Call("addEventListener", "load", func() { go start() })
-}
-
-func draw(m *machine, sys *chip8.System) {
-	sys.Refresh()
-
-	m.Lock()
-	defer m.Unlock()
-
-	ctx := m.canvas.Call("getContext", "2d")
-	img := ctx.Call("getImageData", 0, 0, imgWidth, imgHeight)
-	data := img.Get("data")
-
-	arrBuf := js.Global.Get("ArrayBuffer").New(data.Length())
-	buf8 := js.Global.Get("Uint8ClampedArray").New(arrBuf)
-	buf32 := js.Global.Get("Uint32Array").New(arrBuf)
-
-	buf := buf32.Interface().([]uint)
-
-	for i := 0; i < len(m.video); i += 3 {
-		buf[i/3] = 0xFF000000 | (uint(m.video[i]) << 16) | (uint(m.video[i+1]) << 8) | uint(m.video[i+2])
-	}
-
-	data.Call("set", buf8)
-	ctx.Call("putImageData", img, 0, 0)
-
-	js.Global.Call("requestAnimationFrame", func() { draw(m, sys) })
-}
-
 func start() {
 	name, buffer := openFile()
-
-	m := machine{programName: name, program: buffer, cpuSpeedHz: defaultCPUSpeed}
-	updateTitle(&m)
 
 	document := js.Global.Get("document")
 	document.Set("onkeydown", func(e *js.Object) {
@@ -216,25 +209,62 @@ func start() {
 		kb.Unlock()
 	})
 
+	// Create canvas.
 	canvas := document.Call("createElement", "canvas")
-	m.canvas = canvas
 
 	canvas.Call("setAttribute", "width", strconv.Itoa(imgWidth))
 	canvas.Call("setAttribute", "height", strconv.Itoa(imgHeight))
-	canvas.Get("style").Set("width", strconv.Itoa(imgWidth*2)+"px")
-	canvas.Get("style").Set("height", strconv.Itoa(imgHeight*2)+"px")
+	canvas.Get("style").Set("width", strconv.Itoa(imgWidth*3)+"px")
+	canvas.Get("style").Set("height", strconv.Itoa(imgHeight*3)+"px")
 	document.Get("body").Call("appendChild", canvas)
 
-	sys := chip8.NewSystem(&m)
+	m := machine{programName: name, program: buffer, canvas: canvas, cpuSpeedHz: defaultCPUSpeed}
+	updateTitle(&m)
+
+	// Create audio.
+	audioClass := js.Global.Get("AudioContext")
+	if audioClass != nil {
+		audioClass = js.Global.Get("webkitAudioContext")
+	}
+
+	if audioClass != nil {
+		audioContext := audioClass.New()
+		oscillator := audioContext.Call("createOscillator")
+		gain := audioContext.Call("createGain")
+
+		oscillator.Call("connect", gain)
+		oscillator.Set("type", "square")
+		oscillator.Get("frequency").Set("value", 500)
+		oscillator.Call("start", "0")
+
+		m.muteAudio = func(mute bool) {
+			if audioClass != nil {
+				dest := audioContext.Get("destination")
+				if mute {
+					gain.Call("disconnect", dest)
+				} else {
+					gain.Call("connect", dest)
+				}
+			}
+		}
+	} else {
+		m.muteAudio = func(mute bool) {}
+	}
 
 	go func() {
+		sys := chip8.NewSystem(&m)
+		tickRender := time.Tick(time.Second / 32)
 		tickCPU := time.Tick(time.Second / m.cpuSpeedHz)
-		for _ = range tickCPU {
-			if err := sys.Step(); err != nil {
-				panic(err)
+
+		for {
+			select {
+			case <-tickRender:
+				sys.Refresh()
+			case <-tickCPU:
+				if err := sys.Step(); err != nil {
+					js.Global.Call("alert", err.Error())
+				}
 			}
 		}
 	}()
-
-	js.Global.Call("requestAnimationFrame", func() { draw(&m, sys) })
 }
