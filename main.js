@@ -18290,6 +18290,7 @@ $packages["main"] = (function() {
 		document = $global.document;
 		inputElem[0] = document.createElement($externalize("input", $String));
 		inputElem[0].setAttribute($externalize("type", $String), $externalize("file", $String));
+		inputElem[0].setAttribute($externalize("accept", $String), $externalize(".ch8", $String));
 		document.body.appendChild(inputElem[0]);
 		filec[0] = new $Chan(ptrType, 1);
 		inputElem[0].onchange = $externalize((function(bufc, filec, inputElem, reader) { return function $b(event) {
