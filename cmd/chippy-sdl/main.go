@@ -22,7 +22,8 @@ package main
 /*
 #include <math.h>
 void audioCallback(void *userdata, unsigned char *stream, int len) {
-	for (int i = 0; i < len; i++) {
+	int i;
+	for (i = 0; i < len; i++) {
 		stream[i] = (sin(i / 4) + 1) * 128;
 	}
 }
