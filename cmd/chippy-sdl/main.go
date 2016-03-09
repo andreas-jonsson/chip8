@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package main
 
 /*
+#cgo LDFLAGS: -lm
 #include <math.h>
 void audioCallback(void *userdata, unsigned char *stream, int len) {
 	int i;
