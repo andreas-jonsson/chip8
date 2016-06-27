@@ -36,6 +36,7 @@ import (
 	"fmt"
 	"image/color"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"path"
@@ -150,6 +151,14 @@ func toggleFullscreen(window *sdl.Window) {
 	}
 }
 
+func dumpSystem(sys *chip8.System, name string) {
+	fmt.Println("writing system dump...")
+	if fp, err := os.Create(fmt.Sprintf("%s.dump", name)); err == nil {
+		sys.Dump(fp, name)
+		fp.Close()
+	}
+}
+
 func init() {
 	flag.Parse()
 	runtime.LockOSThread()
@@ -174,25 +183,25 @@ func main() {
 	sdl.Init(sdl.INIT_EVERYTHING)
 	defer sdl.Quit()
 
-	window, err := sdl.CreateWindow("", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 640, 320, sdl.WINDOW_SHOWN)
+	window, err := sdl.CreateWindow("", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED, 800, 600, sdl.WINDOW_SHOWN)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	defer window.Destroy()
 
 	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	defer renderer.Destroy()
 
 	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "linear")
-	renderer.SetLogicalSize(64*4, 32*4)
+	renderer.SetLogicalSize(800, 600)
 	renderer.SetDrawColor(0, 0, 0, 255)
 
 	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_BGR24, sdl.TEXTUREACCESS_STREAMING, 64*4, 32*4)
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	defer texture.Destroy()
 
@@ -204,7 +213,7 @@ func main() {
 	specIn.Callback = sdl.AudioCallback(C.audioCallback)
 
 	if err := sdl.OpenAudio(&specIn, nil); err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 	defer sdl.CloseAudio()
 
@@ -243,6 +252,10 @@ func main() {
 							updateTitle(window, &m)
 							tickCPU = time.Tick(time.Second / m.cpuSpeedHz)
 						}
+					case sdl.K_d:
+						if t.Keysym.Mod&sdl.KMOD_CTRL != 0 {
+							dumpSystem(sys, flags[0])
+						}
 					}
 				}
 			}
@@ -255,7 +268,8 @@ func main() {
 			renderer.Present()
 		case <-tickCPU:
 			if err := sys.Step(); err != nil {
-				panic(err)
+				dumpSystem(sys, flags[0])
+				log.Fatalln(err)
 			}
 		}
 	}

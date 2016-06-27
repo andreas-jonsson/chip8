@@ -18,7 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package chip8
 
 import (
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"math/rand"
 	"time"
 )
@@ -67,6 +70,44 @@ type System struct {
 	lastTick time.Time
 	rnd      *rand.Rand
 	draw     bool
+}
+
+func (sys *System) Dump(writer io.Writer, name string) error {
+	fmt.Fprintf(writer, "%v\n%s\n\n", time.Now(), name)
+	fmt.Fprintf(writer, "PC: 0x%X, SP: 0x%X, I: 0x%X\n\n", sys.pc, sys.sp, sys.i)
+
+	for i, v := range sys.v {
+		fmt.Fprintf(writer, "V%d: 0x%X\n", i, v)
+	}
+
+	stackDumper := hex.Dumper(writer)
+	defer stackDumper.Close()
+
+	fmt.Fprintln(writer)
+	if err := binary.Write(stackDumper, binary.BigEndian, sys.stack[:]); err != nil {
+		return err
+	}
+
+	memoryDumper := hex.Dumper(writer)
+	defer memoryDumper.Close()
+
+	fmt.Fprintln(writer)
+	if _, err := memoryDumper.Write(sys.memory[:]); err != nil {
+		return err
+	}
+
+	for y := 0; y < 32; y++ {
+		fmt.Fprintln(writer)
+		for x := 0; x < 64; x++ {
+			if sys.video[y*64+x] != 0 {
+				fmt.Fprint(writer, "#")
+			} else {
+				fmt.Fprint(writer, ".")
+			}
+		}
+	}
+
+	return nil
 }
 
 func (sys *System) Reset() {
