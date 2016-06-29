@@ -171,7 +171,7 @@ func (sys *System) op0(opcode uint16) error {
 		sys.sp--
 		sys.pc = sys.stack[sys.sp&0xF] + 2
 	default:
-		if err := fmt.Errorf("invalid opcode: %v", opcode&0xF); err != nil {
+		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xF); err != nil {
 			return err
 		}
 	}
@@ -231,7 +231,7 @@ func (sys *System) op8(opcode uint16) error {
 		sys.v[(opcode&0xF00)>>8] = sys.v[(opcode&0xF00)>>8] << 1
 		sys.pc += 2
 	default:
-		if err := fmt.Errorf("invalid opcode: %v", opcode&0xF); err != nil {
+		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xF); err != nil {
 			return err
 		}
 	}
@@ -253,7 +253,7 @@ func (sys *System) opE(opcode uint16) error {
 			sys.pc += 2
 		}
 	default:
-		if err := fmt.Errorf("invalid opcode: %v", opcode&0xF); err != nil {
+		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xF); err != nil {
 			return err
 		}
 	}
@@ -289,22 +289,22 @@ func (sys *System) opF(opcode uint16) error {
 		sys.i = uint16(sys.v[(opcode&0xF00)>>8]) * 5
 		sys.pc += 2
 	case 0x33:
-		sys.memory[sys.i] = sys.v[(opcode&0xF00)>>8] / 100
-		sys.memory[sys.i+1] = (sys.v[(opcode&0xF00)>>8] / 10) % 10
-		sys.memory[sys.i+2] = sys.v[(opcode&0xF00)>>8] % 10
+		sys.memory[sys.i&0xFFF] = sys.v[(opcode&0xF00)>>8] / 100
+		sys.memory[(sys.i+1)&0xFFF] = (sys.v[(opcode&0xF00)>>8] / 10) % 10
+		sys.memory[(sys.i+2)&0xFFF] = sys.v[(opcode&0xF00)>>8] % 10
 		sys.pc += 2
 	case 0x55:
 		for i := uint16(0); i <= ((opcode & 0xF00) >> 8); i++ {
-			sys.memory[sys.i+i] = sys.v[i]
+			sys.memory[(sys.i+i)&0xFFF] = sys.v[i]
 		}
 		sys.pc += 2
 	case 0x65:
 		for i := uint16(0); i <= ((opcode & 0xF00) >> 8); i++ {
-			sys.v[i] = sys.memory[sys.i+i]
+			sys.v[i] = sys.memory[(sys.i+i)&0xFFF]
 		}
 		sys.pc += 2
 	default:
-		if err := fmt.Errorf("invalid opcode: %v", opcode&0xFF); err != nil {
+		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xFF); err != nil {
 			return err
 		}
 	}
@@ -313,7 +313,7 @@ func (sys *System) opF(opcode uint16) error {
 }
 
 func (sys *System) Step() error {
-	opcode := uint16(sys.memory[sys.pc])<<8 | uint16(sys.memory[sys.pc+1])
+	opcode := uint16(sys.memory[sys.pc&0xFFF])<<8 | uint16(sys.memory[(sys.pc+1)&0xFFF])
 
 	switch opcode & 0xF000 {
 	case 0x0:
@@ -323,7 +323,7 @@ func (sys *System) Step() error {
 	case 0x1000:
 		sys.pc = opcode & 0xFFF
 	case 0x2000:
-		sys.stack[sys.sp] = sys.pc
+		sys.stack[sys.sp&0xF] = sys.pc
 		sys.sp++
 		sys.pc = opcode & 0xFFF
 	case 0x3000:
@@ -373,7 +373,7 @@ func (sys *System) Step() error {
 
 		sys.v[0xF] = 0
 		for yline := uint16(0); yline < height; yline++ {
-			pixel := sys.memory[sys.i+yline]
+			pixel := sys.memory[(sys.i+yline)&0xFFF]
 			for xline := uint16(0); xline < 8; xline++ {
 				if (pixel & (0x80 >> xline)) != 0 {
 					offset := x + xline + ((y + yline) * 64)
@@ -400,7 +400,7 @@ func (sys *System) Step() error {
 			return err
 		}
 	default:
-		if err := fmt.Errorf("invalid opcode: %v", opcode&0xF000); err != nil {
+		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xF000); err != nil {
 			return err
 		}
 	}
