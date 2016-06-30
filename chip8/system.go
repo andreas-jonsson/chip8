@@ -54,11 +54,16 @@ type InputOutput interface {
 	Rand() *rand.Rand
 	BeginTone()
 	EndTone()
+
+	// Color extension
+	SetCPUFrequency(freq int)
 }
 
 type System struct {
 	pc, sp, i uint16
 	v         [16]byte
+
+	fg, bg byte
 
 	stack  [16]uint16
 	memory [4096]byte
@@ -69,7 +74,9 @@ type System struct {
 
 	lastTick time.Time
 	rnd      *rand.Rand
-	draw     bool
+
+	draw,
+	color bool
 }
 
 func (sys *System) Dump(writer io.Writer, name string) error {
@@ -114,6 +121,8 @@ func (sys *System) Reset() {
 	sys.pc = 0x200
 	sys.sp = 0x0
 	sys.i = 0x0
+	sys.fg = 0xF
+	sys.bg = 0x0
 
 	sys.delayTimer = 0
 	sys.soundTimer = 0
@@ -133,15 +142,19 @@ func (sys *System) Reset() {
 		sys.memory[i] = x
 	}
 
+	sys.color = false
 	sys.clearScreen()
 	sys.io.Load(sys.memory[512:])
 }
 
 func (sys *System) clearScreen() {
 	for i := range sys.video {
-		sys.video[i] = 0
+		sys.video[i] = sys.bg
 	}
-	sys.draw = true
+
+	if !sys.color {
+		sys.draw = true
+	}
 }
 
 func (sys *System) tickTimers() {
@@ -163,18 +176,28 @@ func (sys *System) tickTimers() {
 }
 
 func (sys *System) op0(opcode uint16) error {
-	switch opcode & 0xF {
-	case 0x0:
-		sys.clearScreen()
-		sys.pc += 2
-	case 0xE:
-		sys.sp--
-		sys.pc = sys.stack[sys.sp&0xF] + 2
-	default:
-		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xF); err != nil {
-			return err
+	if opcode&0xF0 == 0xC0 {
+		sys.io.SetCPUFrequency(int((opcode&0xF00)>>8) * 100)
+	} else {
+		switch opcode & 0xFF {
+		case 0xE0:
+			sys.clearScreen()
+		case 0xEE:
+			sys.sp--
+			sys.pc = sys.stack[sys.sp&0xF]
+		case 0xFD:
+			sys.Reset()
+		case 0xFE:
+			//sys.color = true
+			sys.draw = true
+		default:
+			if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xF); err != nil {
+				return err
+			}
 		}
 	}
+
+	sys.pc += 2
 	return nil
 }
 
@@ -303,6 +326,16 @@ func (sys *System) opF(opcode uint16) error {
 			sys.v[i] = sys.memory[(sys.i+i)&0xFFF]
 		}
 		sys.pc += 2
+	case 0x75:
+		//if sys.color {
+		sys.fg = byte((opcode & 0xF00) >> 8)
+		//}
+		sys.pc += 2
+	case 0x85:
+		//if sys.color {
+		sys.bg = byte((opcode & 0xF00) >> 8)
+		//}
+		sys.pc += 2
 	default:
 		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xFF); err != nil {
 			return err
@@ -377,20 +410,22 @@ func (sys *System) Step() error {
 			for xline := uint16(0); xline < 8; xline++ {
 				if (pixel & (0x80 >> xline)) != 0 {
 					offset := x + xline + ((y + yline) * 64)
-					if len(sys.video) > int(offset) && sys.video[offset] != 0 {
-						sys.v[0xF] = 1
-					}
-
-					offset = x + xline + ((y + yline) * 64)
 					if len(sys.video) > int(offset) {
-						sys.video[offset] ^= 1
+						if sys.video[offset] != sys.bg {
+							sys.v[0xF] = 1
+							sys.video[offset] = sys.bg
+						} else {
+							sys.video[offset] = sys.fg
+						}
 					}
 				}
 			}
 		}
 
 		sys.pc += 2
-		sys.draw = true
+		if !sys.color {
+			sys.draw = true
+		}
 	case 0xE000:
 		if err := sys.opE(opcode); err != nil {
 			return err
@@ -414,6 +449,10 @@ func (sys *System) Refresh() {
 		sys.draw = false
 		sys.io.Draw(sys.video[:])
 	}
+}
+
+func (sys *System) HasColor() bool {
+	return sys.color
 }
 
 func NewSystem(io InputOutput) *System {

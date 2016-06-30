@@ -74,7 +74,7 @@ var screenColor color.RGBA
 type machine struct {
 	programPath string
 	cpuSpeedHz  time.Duration
-	video       [64 * 4 * 32 * 4 * 3]byte
+	video       [64 * 32]uint32
 }
 
 func (m *machine) Load(memory []byte) {
@@ -103,35 +103,32 @@ func (m *machine) Key(code int) bool {
 	state := sdl.GetKeyboardState()
 	return state[scan] != 0
 }
+func (m *machine) SetCPUFrequency(freq int) {
+	m.cpuSpeedHz = time.Duration(freq)
+}
 
 func (m *machine) Draw(video []byte) {
-	putPixel := func(x, y int, buffer []byte) {
-		i := (y*64*4 + x) * 3
-		buffer[i] = screenColor.B
-		buffer[i+1] = screenColor.G
-		buffer[i+2] = screenColor.R
+	pal := []uint32{
+		0x00000000,
+		0x00CC0033,
+		0x00000099,
+		0x00CC33CC,
+		0x00006633,
+		0x00666666,
+		0x003333FF,
+		0x006699FF,
+		0x00996600,
+		0x00FF6600,
+		0x00999999,
+		0x00FF9999,
+		0x0000CC00,
+		0x00FFFF00,
+		0x0033FF99,
+		0x00FFFFFF,
 	}
 
-	destY := 0
-	destX := 0
-
-	for i := range m.video {
-		m.video[i] = 0
-	}
-
-	for y := 0; y < 32; y++ {
-		destY = y * 4
-		for i := 0; i < 3; i++ {
-			for x := 0; x < 64; x++ {
-				destX = x * 4
-				if video[y*64+x] > 0 {
-					putPixel(destX, destY+i, m.video[:])
-					putPixel(destX+1, destY+i, m.video[:])
-					putPixel(destX+2, destY+i, m.video[:])
-				}
-
-			}
-		}
+	for offset, index := range video {
+		m.video[offset] = pal[index]
 	}
 }
 
@@ -195,11 +192,10 @@ func main() {
 	}
 	defer renderer.Destroy()
 
-	sdl.SetHint(sdl.HINT_RENDER_SCALE_QUALITY, "linear")
 	renderer.SetLogicalSize(800, 600)
 	renderer.SetDrawColor(0, 0, 0, 255)
 
-	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_BGR24, sdl.TEXTUREACCESS_STREAMING, 64*4, 32*4)
+	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, 64, 32)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -222,8 +218,9 @@ func main() {
 
 	sys := chip8.NewSystem(&m)
 
+	cpuSpeedHz := m.cpuSpeedHz
 	tickRender := time.Tick(time.Second / 65)
-	tickCPU := time.Tick(time.Second / m.cpuSpeedHz)
+	tickCPU := time.Tick(time.Second / cpuSpeedHz)
 
 	for {
 		select {
@@ -243,14 +240,10 @@ func main() {
 					case sdl.K_p:
 						if m.cpuSpeedHz < 2000 {
 							m.cpuSpeedHz += 100
-							updateTitle(window, &m)
-							tickCPU = time.Tick(time.Second / m.cpuSpeedHz)
 						}
 					case sdl.K_m:
 						if m.cpuSpeedHz > 100 {
 							m.cpuSpeedHz -= 100
-							updateTitle(window, &m)
-							tickCPU = time.Tick(time.Second / m.cpuSpeedHz)
 						}
 					case sdl.K_d:
 						if t.Keysym.Mod&sdl.KMOD_CTRL != 0 {
@@ -260,10 +253,16 @@ func main() {
 				}
 			}
 
+			if cpuSpeedHz != m.cpuSpeedHz {
+				cpuSpeedHz = m.cpuSpeedHz
+				updateTitle(window, &m)
+				tickCPU = time.Tick(time.Second / m.cpuSpeedHz)
+			}
+
 			sys.Refresh()
 
 			renderer.Clear()
-			texture.Update(nil, unsafe.Pointer(&m.video[0]), 64*4*3)
+			texture.Update(nil, unsafe.Pointer(&m.video[0]), 64*4)
 			renderer.Copy(texture, nil, nil)
 			renderer.Present()
 		case <-tickCPU:

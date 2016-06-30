@@ -1,6 +1,6 @@
-## CHIP81 Assembler
+# Chip8 Color - Assembler
 
-#### Mnemonic Table
+## Mnemonic Table
 
 | Mnemonic | Opcode | Operands | Description |
 | -------- | ------ | :------: | ----------- |
@@ -24,7 +24,7 @@
 | `shl`    | `8s0E` | 1 | Shift bits in register `s` 1 bit to the left - bit 7 shifts to register `F`  |
 | `skrne`  | `9st0` | 2 | Skip next instruction if register `s` not equal register `t`   |
 | `loadi`  | `Annn` | 1 | Load index with value `nnn`                                    |
-| `jumpi`  | `Bnnn` | 1 | Jump to address `nnn` + index                                  |
+| `jump0`  | `Bnnn` | 1 | Jump to address `nnn` + v0                                  |
 | `rand`   | `Ctnn` | 2 | Generate random number between 0 and `nn` and store in `t`     |
 | `draw`   | `Dstn` | 3 | Draw `n` byte sprite at x location reg `s`, y location reg `t` |
 | `skp`    | `Es9E` | 1 | Skip the following instruction if the key value stored in register `s` is pressed |
@@ -38,3 +38,13 @@
 | `bcd`    | `Fs33` | 1 | Store the binary coded decimal value of register `s` at index  |
 | `stor`   | `Fs55` | 1 | Store the values of register `s` registers at index            |
 | `read`   | `Fs65` | 1 | Read back the stored values at index into registers            |
+
+#### Color extension
+
+| Mnemonic | Opcode | Operands | Description |
+| -------- | ------ | :------: | ----------- |
+| `frq`    | `0nC0` | 1 | Set CPU frequency `n` hundred hz                     |
+| `reset`  | `00FD` | 0 | System reset                                         |
+| `swp`    | `00FE` | 0 | Swap back-buffer and enables color mode              |
+| `fgc`    | `Fn75` | 1 | Set sprite color                                     |
+| `bgc`    | `Fn85` | 1 | Set clear color                                      |

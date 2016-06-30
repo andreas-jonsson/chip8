@@ -20,6 +20,8 @@ package main
 import (
 	"bufio"
 	"encoding/binary"
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -27,17 +29,36 @@ import (
 	"strings"
 )
 
-func syntaxError(file string, ln int) {
-	log.Fatalf("syntax error, %s : %d\n", file, ln)
+type (
+	patchInfo struct {
+		inst uint16
+		lable,
+		file string
+		line int
+	}
+
+	assembler struct {
+		file   string
+		line   int
+		offset uint16
+
+		writer  io.WriteSeeker
+		patches map[uint16]patchInfo
+		lables  map[string]uint16
+	}
+)
+
+func (asm *assembler) syntaxError() {
+	log.Fatalf("syntax error, %s : %d\n", asm.file, asm.line)
 }
 
-func checkLen(args []string, n int, file string, ln int) {
+func (asm *assembler) checkLen(args []string, n int) {
 	if len(args) != n {
-		syntaxError(file, ln)
+		asm.syntaxError()
 	}
 }
 
-func parseNumber(s string) (uint16, error) {
+func (asm *assembler) parseNumber(s string) (uint16, error) {
 	var (
 		n   uint64
 		err error
@@ -63,66 +84,66 @@ func parseNumber(s string) (uint16, error) {
 	return 0, err
 }
 
-func parseRegName(s, file string, ln int) uint16 {
+func (asm *assembler) parseRegName(s string) uint16 {
 	if s[0] == 'v' {
-		n, err := strconv.ParseUint(s[1:], 10, 4)
+		n, err := strconv.ParseUint(s[1:], 16, 4)
 		if err == nil {
 			return uint16(n)
 		}
 	}
 
-	syntaxError(file, ln)
+	asm.syntaxError()
 	return 0
 }
 
-func writeUint8(writer io.Writer, value byte) {
-	if err := binary.Write(writer, binary.BigEndian, value); err != nil {
+func (asm *assembler) writeUint8(value byte) {
+	if err := binary.Write(asm.writer, binary.BigEndian, value); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func writeUint16(writer io.Writer, value uint16) {
-	if err := binary.Write(writer, binary.BigEndian, value); err != nil {
+func (asm *assembler) writeUint16(value uint16) {
+	if err := binary.Write(asm.writer, binary.BigEndian, value); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-func writeOpcode(writer io.Writer, args []string, lables map[string]uint16, file string, ln int) uint16 {
+func (asm *assembler) writeOpcode(args []string) uint16 {
 	switch args[0] {
 	case ".":
-		n, err := parseNumber(args[1])
+		n, err := asm.parseNumber(args[1])
 		if err != nil {
-			syntaxError(file, ln)
+			asm.syntaxError()
 		}
 
-		writeUint8(writer, byte(n))
-		return uint16(len(args)-1) * 2
+		asm.writeUint8(byte(n))
+		nof := uint16(len(args) - 1)
+		asm.offset += nof
+		return nof
 	case "..":
-		n, err := parseNumber(args[1])
+		n, err := asm.parseNumber(args[1])
 		if err != nil {
-			syntaxError(file, ln)
+			asm.syntaxError()
 		}
 
-		writeUint16(writer, n)
-		return uint16(len(args)-1) * 2
+		asm.writeUint16(n)
+		nof := uint16(len(args)-1) * 2
+		asm.offset += nof
+		return nof
 	case "clr":
-		checkLen(args, 1, file, ln)
-		writeUint16(writer, 0xE0)
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xE0)
 	case "rts":
-		checkLen(args, 1, file, ln)
-		writeUint16(writer, 0xEE)
-	case "jump", "call", "loadi", "jumpi":
-		checkLen(args, 2, file, ln)
-
-		lable := args[1]
-		n, err := parseNumber(lable)
-		if err != nil {
-			addr, ok := lables[lable]
-			if !ok {
-				log.Fatalf("unknown lable '%s', %s : %d\n", lable, file, ln)
-			}
-			n = addr + 0x200
-		}
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xEE)
+	case "reset":
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xFD)
+	case "swp":
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xFE)
+	case "jump", "call", "loadi", "jump0":
+		asm.checkLen(args, 2)
 
 		var inst uint16
 		switch args[0] {
@@ -132,20 +153,26 @@ func writeOpcode(writer io.Writer, args []string, lables map[string]uint16, file
 			inst = 0x2000
 		case "loadi":
 			inst = 0xA000
-		case "jumpi":
+		case "jump0":
 			inst = 0xB000
 		default:
 			panic(nil)
 		}
 
-		writeUint16(writer, inst|(n&0x0FFF))
-	case "ske", "skne", "load", "add", "rand":
-		checkLen(args, 3, file, ln)
-
-		reg := parseRegName(args[1], file, ln)
-		n, err := parseNumber(args[2])
+		lable := args[1]
+		n, err := asm.parseNumber(lable)
 		if err != nil {
-			syntaxError(file, ln)
+			asm.patches[asm.offset] = patchInfo{inst, lable, asm.file, asm.line}
+		}
+
+		asm.writeUint16(inst | (n & 0x0FFF))
+	case "ske", "skne", "load", "add", "rand":
+		asm.checkLen(args, 3)
+
+		reg := asm.parseRegName(args[1])
+		n, err := asm.parseNumber(args[2])
+		if err != nil {
+			asm.syntaxError()
 		}
 
 		var inst uint16
@@ -164,12 +191,12 @@ func writeOpcode(writer io.Writer, args []string, lables map[string]uint16, file
 			panic(nil)
 		}
 
-		writeUint16(writer, inst|(reg<<8)|(n&0x00FF))
+		asm.writeUint16(inst | (reg << 8) | (n & 0x00FF))
 	case "skre", "move", "or", "and", "xor", "addr", "sub", "subr", "sknre":
-		checkLen(args, 3, file, ln)
+		asm.checkLen(args, 3)
 
-		reg0 := parseRegName(args[1], file, ln)
-		reg1 := parseRegName(args[2], file, ln)
+		reg0 := asm.parseRegName(args[1])
+		reg1 := asm.parseRegName(args[2])
 
 		var inst uint16
 		switch args[0] {
@@ -195,11 +222,11 @@ func writeOpcode(writer io.Writer, args []string, lables map[string]uint16, file
 			panic(nil)
 		}
 
-		writeUint16(writer, inst|(reg0<<8)|(reg1<<4))
+		asm.writeUint16(inst | (reg0 << 8) | (reg1 << 4))
 	case "shr", "shl", "skp", "sknp", "moved", "keyd", "loadd", "loads", "addi", "ldspr", "bcd", "stor", "read":
-		checkLen(args, 2, file, ln)
+		asm.checkLen(args, 2)
 
-		reg := parseRegName(args[1], file, ln)
+		reg := asm.parseRegName(args[1])
 
 		var inst uint16
 		switch args[0] {
@@ -231,40 +258,105 @@ func writeOpcode(writer io.Writer, args []string, lables map[string]uint16, file
 			inst = 0xF065
 		}
 
-		writeUint16(writer, inst|(reg<<8))
+		asm.writeUint16(inst | (reg << 8))
 	case "draw":
-		checkLen(args, 4, file, ln)
+		asm.checkLen(args, 4)
 
-		reg0 := parseRegName(args[1], file, ln)
-		reg1 := parseRegName(args[2], file, ln)
+		reg0 := asm.parseRegName(args[1])
+		reg1 := asm.parseRegName(args[2])
 
-		n, err := parseNumber(args[3])
+		n, err := asm.parseNumber(args[3])
 		if err != nil {
-			syntaxError(file, ln)
+			asm.syntaxError()
 		}
 
-		writeUint16(writer, 0xD000|(reg0<<8)|(reg1<<4)|(n&0x000F))
+		asm.writeUint16(0xD000 | (reg0 << 8) | (reg1 << 4) | (n & 0x000F))
+	case "frq", "fgc", "bgc":
+		asm.checkLen(args, 2)
+
+		n, err := asm.parseNumber(args[1])
+		if err != nil {
+			asm.syntaxError()
+		}
+
+		var inst uint16
+		switch args[0] {
+		case "frq":
+			inst = 0x00C0
+		case "fgc":
+			inst = 0xF075
+		case "bgc":
+			inst = 0xF085
+		default:
+			panic(nil)
+		}
+
+		asm.writeUint16(inst | ((n & 0x000F) << 8))
 	default:
-		syntaxError(file, ln)
+		asm.syntaxError()
 	}
 
+	asm.offset += 2
 	return 2
 }
 
+func (asm *assembler) patchProgram() {
+	for offset, info := range asm.patches {
+		addr, ok := asm.lables[info.lable]
+		if !ok {
+			log.Fatalf("unknown lable '%s', %s : %d\n", info.lable, info.file, info.line)
+		}
+
+		asm.writer.Seek(int64(offset), 0)
+		asm.writeUint16(info.inst | ((addr + 0x200) & 0x0FFF))
+	}
+	asm.writer.Seek(0, 2)
+}
+
+func (asm *assembler) saveLable(lable string) {
+	asm.lables[lable] = asm.offset
+}
+
 func main() {
-	fileName := "test.asm"
+	flag.Parse()
+	flags := flag.Args()
+	if len(flags) != 2 {
+		fmt.Println("usage: prog <input.asm> <output.ch8>")
+		return
+	}
+
+	fileName := flags[0]
 	fp, err := os.Open(fileName)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer fp.Close()
 
-	offset := uint16(0)
-	lables := make(map[string]uint16)
+	outFile := flags[1]
+	ofp, err := os.Create(outFile)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer ofp.Close()
+
+	mfp, err := os.Create(outFile + ".map")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer mfp.Close()
+	fmt.Fprintln(mfp, fileName)
+
+	asm := &assembler{
+		file:    fileName,
+		offset:  0,
+		lables:  make(map[string]uint16),
+		patches: make(map[uint16]patchInfo),
+		writer:  ofp,
+	}
+
 	scanner := bufio.NewScanner(fp)
 
-	var ln int
-	for ln = 1; scanner.Scan(); ln++ {
+	for asm.line = 1; scanner.Scan(); asm.line++ {
 		line := scanner.Text()
 
 		for i, c := range line {
@@ -274,17 +366,9 @@ func main() {
 			}
 		}
 
-		var args []string
-		split := strings.SplitN(line, " ", 3)
-
-		for _, s := range split {
-			s := strings.TrimSpace(s)
-			if len(s) > 0 {
-				args = append(args, s)
-			}
-		}
-
+		args := strings.Fields(line)
 		argsLen := len(args)
+
 		if argsLen == 0 {
 			continue
 		}
@@ -294,14 +378,18 @@ func main() {
 
 		if argsLen == 1 && first[l-1:] == ":" {
 			lable := first[:l-1]
-			lables[lable] = offset
+			asm.saveLable(lable)
 			continue
 		}
 
-		offset += writeOpcode(os.Stdout, args, lables, fileName, ln)
+		for n := asm.writeOpcode(args); n > 0; n-- {
+			fmt.Fprintln(mfp, asm.line)
+		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		syntaxError(fileName, ln)
+	if err = scanner.Err(); err != nil {
+		asm.syntaxError()
 	}
+
+	asm.patchProgram()
 }
