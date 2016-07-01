@@ -185,10 +185,8 @@ func (sys *System) op0(opcode uint16) error {
 			sys.Reset()
 			return nil
 		case 0x102:
-			sys.fgColor = sys.v[0]
-			sys.clearScreen()
-		case 0x103:
 			sys.bgColor = sys.v[0]
+			sys.fgColor = sys.v[1]
 			sys.clearScreen()
 		}
 	}

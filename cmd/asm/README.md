@@ -46,5 +46,4 @@
 | ------- | ----------- |
 | `100`   | Set CPU frequency to v0 * 10 hz |
 | `101`   | System reset                    |
-| `102`   | Set sprite color                |
-| `103`   | Set background color            |
+| `102`   | Set bg (v0) and fg (v1) color   |

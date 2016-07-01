@@ -19,8 +19,9 @@
     load    v0 50
     sys     $100        ; Set CPU frequency to V0 * 10 (500hz)
 
-    load    v0 40
-    sys     $103        ; Set background color (keep sprite color white)
+    load    v0 29
+    load    v1 255
+    sys     $102        ; Set background color (keep sprite color white)
 
     load	va 2		; Set left player X coord
     load	vb 12		; Set left player Y coord
