@@ -34,7 +34,7 @@ import "C"
 import (
 	"flag"
 	"fmt"
-	"image/color"
+	"image/color/palette"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -69,12 +69,10 @@ var keymap = [16]string{
 
 const defaultCPUSpeed = 500
 
-var screenColor color.RGBA
-
 type machine struct {
 	programPath string
 	cpuSpeedHz  time.Duration
-	video       [64 * 32]uint32
+	video       [64 * 32 * 3]byte
 }
 
 func (m *machine) Load(memory []byte) {
@@ -108,27 +106,11 @@ func (m *machine) SetCPUFrequency(freq int) {
 }
 
 func (m *machine) Draw(video []byte) {
-	pal := []uint32{
-		0x00000000,
-		0x00CC0033,
-		0x00000099,
-		0x00CC33CC,
-		0x00006633,
-		0x00666666,
-		0x003333FF,
-		0x006699FF,
-		0x00996600,
-		0x00FF6600,
-		0x00999999,
-		0x00FF9999,
-		0x0000CC00,
-		0x00FFFF00,
-		0x0033FF99,
-		0x00FFFFFF,
-	}
-
 	for offset, index := range video {
-		m.video[offset] = pal[index]
+		r, g, b, _ := palette.Plan9[index].RGBA()
+		m.video[offset*3] = byte(r)
+		m.video[offset*3+1] = byte(g)
+		m.video[offset*3+2] = byte(b)
 	}
 }
 
@@ -171,12 +153,6 @@ func main() {
 		return
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	screenColor.R = uint8(r.Intn(127)) + 128
-	screenColor.G = uint8(r.Intn(127)) + 128
-	screenColor.B = uint8(r.Intn(127)) + 128
-	screenColor.A = 255
-
 	sdl.Init(sdl.INIT_EVERYTHING)
 	defer sdl.Quit()
 
@@ -195,7 +171,7 @@ func main() {
 	renderer.SetLogicalSize(800, 600)
 	renderer.SetDrawColor(0, 0, 0, 255)
 
-	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_ABGR8888, sdl.TEXTUREACCESS_STREAMING, 64, 32)
+	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_BGR24, sdl.TEXTUREACCESS_STREAMING, 64, 32)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -262,7 +238,7 @@ func main() {
 			sys.Refresh()
 
 			renderer.Clear()
-			texture.Update(nil, unsafe.Pointer(&m.video[0]), 64*4)
+			texture.Update(nil, unsafe.Pointer(&m.video[0]), 64*3)
 			renderer.Copy(texture, nil, nil)
 			renderer.Present()
 		case <-tickCPU:

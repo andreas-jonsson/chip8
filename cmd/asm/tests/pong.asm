@@ -16,15 +16,16 @@
 
 
 ; start
-    frq     5           ; Set CPU frequency to 500hz
-    swp                 ; Enable color extension
-    bgc     3           ; Set orange background
-    clr
+    load    v0 50
+    sys     $100        ; Set CPU frequency to V0 * 10 (500hz)
 
-    load	va 2		; Set left player X coord.
-    load	vb 12		; Set left player Y coord.
-    load	vc 63		; Set right player X coord.
-    load	vd 12		; Set right player Y coord.
+    load    v0 40
+    sys     $103        ; Set background color (keep sprite color white)
+
+    load	va 2		; Set left player X coord
+    load	vb 12		; Set left player Y coord
+    load	vc 63		; Set right player X coord
+    load	vd 12		; Set right player Y coord
 
     loadi	Paddle		; Get address of paddle sprite
     draw	va vb 6		; Draw left paddle
@@ -110,9 +111,7 @@ Ball_Loop:
     skne    v7 0        ; Skip next instruction if ball not at top
     load    v9 1        ; Set Y direction to down
 
-    fgc     3
     draw    v6 v7 1     ; Draw ball
-    fgc     $f
     jump    Padl_Loop
 
 

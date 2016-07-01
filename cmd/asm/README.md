@@ -1,9 +1,10 @@
-# Chip8 Color - Assembler
+# CHIP8 - Assembler
 
 ## Mnemonic Table
 
 | Mnemonic | Opcode | Operands | Description |
 | -------- | ------ | :------: | ----------- |
+| `sys`    | `0nnn` | 1 | Execute syscall                                                |
 | `clr`    | `00E0` | 0 | Clear the screen                                               |
 | `rts`    | `00EE` | 0 | Return from subroutine                                         |
 | `jump`   | `1nnn` | 1 | Jump to address `nnn`                                          |
@@ -39,12 +40,11 @@
 | `stor`   | `Fs55` | 1 | Store the values of register `s` registers at index            |
 | `read`   | `Fs65` | 1 | Read back the stored values at index into registers            |
 
-#### Color extension
+#### Chippy syscall's
 
-| Mnemonic | Opcode | Operands | Description |
-| -------- | ------ | :------: | ----------- |
-| `frq`    | `0nC0` | 1 | Set CPU frequency `n` hundred hz                     |
-| `reset`  | `00FD` | 0 | System reset                                         |
-| `swp`    | `00FE` | 0 | Swap back-buffer and enables color mode              |
-| `fgc`    | `Fn75` | 1 | Set sprite color                                     |
-| `bgc`    | `Fn85` | 1 | Set clear color                                      |
+| Address | Description |
+| ------- | ----------- |
+| `100`   | Set CPU frequency to v0 * 10 hz |
+| `101`   | System reset                    |
+| `102`   | Set sprite color                |
+| `103`   | Set background color            |

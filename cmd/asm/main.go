@@ -29,6 +29,8 @@ import (
 	"strings"
 )
 
+const version = "0.1.0"
+
 type (
 	patchInfo struct {
 		inst uint16
@@ -136,13 +138,7 @@ func (asm *assembler) writeOpcode(args []string) uint16 {
 	case "rts":
 		asm.checkLen(args, 1)
 		asm.writeUint16(0xEE)
-	case "reset":
-		asm.checkLen(args, 1)
-		asm.writeUint16(0xFD)
-	case "swp":
-		asm.checkLen(args, 1)
-		asm.writeUint16(0xFE)
-	case "jump", "call", "loadi", "jump0":
+	case "jump", "call", "loadi", "jump0", "sys":
 		asm.checkLen(args, 2)
 
 		var inst uint16
@@ -155,6 +151,8 @@ func (asm *assembler) writeOpcode(args []string) uint16 {
 			inst = 0xA000
 		case "jump0":
 			inst = 0xB000
+		case "sys":
+			inst = 0x0000
 		default:
 			panic(nil)
 		}
@@ -271,27 +269,6 @@ func (asm *assembler) writeOpcode(args []string) uint16 {
 		}
 
 		asm.writeUint16(0xD000 | (reg0 << 8) | (reg1 << 4) | (n & 0x000F))
-	case "frq", "fgc", "bgc":
-		asm.checkLen(args, 2)
-
-		n, err := asm.parseNumber(args[1])
-		if err != nil {
-			asm.syntaxError()
-		}
-
-		var inst uint16
-		switch args[0] {
-		case "frq":
-			inst = 0x00C0
-		case "fgc":
-			inst = 0xF075
-		case "bgc":
-			inst = 0xF085
-		default:
-			panic(nil)
-		}
-
-		asm.writeUint16(inst | ((n & 0x000F) << 8))
 	default:
 		asm.syntaxError()
 	}
@@ -318,6 +295,10 @@ func (asm *assembler) saveLable(lable string) {
 }
 
 func main() {
+	fmt.Println("CHIP8 Assembler")
+	fmt.Println("Copyright (C) 2016 Andreas T Jonsson")
+	fmt.Printf("Version: %v\n\n", version)
+
 	flag.Parse()
 	flags := flag.Args()
 	if len(flags) != 2 {
@@ -339,7 +320,7 @@ func main() {
 	}
 	defer ofp.Close()
 
-	mfp, err := os.Create(outFile + ".map")
+	mfp, err := os.Create(outFile + ".debug")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -392,4 +373,6 @@ func main() {
 	}
 
 	asm.patchProgram()
+	size, _ := ofp.Seek(0, 2)
+	fmt.Printf("program size: %d bytes\n", size)
 }
