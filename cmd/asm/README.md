@@ -27,7 +27,7 @@
 | `loadi`  | `Annn` | 1 | Load index with value `nnn`                                    |
 | `jump0`  | `Bnnn` | 1 | Jump to address `nnn` + v0                                  |
 | `rand`   | `Ctnn` | 2 | Generate random number between 0 and `nn` and store in `t`     |
-| `draw`   | `Dstn` | 3 | Draw `n` byte sprite at x location reg `s`, y location reg `t` |
+| `draw`   | `Dstn` | 3 | Draw `n` byte sprite at x location reg `s`, y location reg `t`. (If n=0 and extended mode, show 16x16 sprite.) |
 | `skp`    | `Es9E` | 1 | Skip the following instruction if the key value stored in register `s` is pressed |
 | `sknp`   | `EsA1` | 1 | Skip the following instruction if the key value stored in register `s` is not pressed |
 | `moved`  | `Ft07` | 1 | Move delay timer value into register `t`                       |
@@ -39,6 +39,20 @@
 | `bcd`    | `Fs33` | 1 | Store the binary coded decimal value of register `s` at index  |
 | `stor`   | `Fs55` | 1 | Store the values of register `s` registers at index            |
 | `read`   | `Fs65` | 1 | Read back the stored values at index into registers            |
+
+#### SuperChip instructions
+
+| Mnemonic | Opcode | Operands | Description |
+| -------- | ------ | :------: | ----------- |
+| `scr`    | `00Cn` | 1 | Scroll `n` lines down      |
+| `scrr`   | `00FB` | 0 | Scroll 4 pixels right      |
+| `scrl`   | `00FC` | 0 | Scroll 4 pixels left       |
+| `halt`   | `00FD` | 0 | System halt                |
+| `low`    | `00FE` | 0 | Set 64x32 video mode       |
+| `high`   | `00FF` | 0 | Set 128x64 video mode      |
+|          | `Fs30` | 1 | Not supported              |
+|          | `Fs75` | 1 | Not supported              |
+|          | `Fs85` | 1 | Not supported              |
 
 #### Chippy syscall's
 

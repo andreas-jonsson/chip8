@@ -132,12 +132,34 @@ func (asm *assembler) writeOpcode(args []string) uint16 {
 		nof := uint16(len(args)-1) * 2
 		asm.offset += nof
 		return nof
+	case "scr":
+		asm.checkLen(args, 2)
+		n, err := asm.parseNumber(args[1])
+		if err != nil {
+			asm.syntaxError()
+		}
+		asm.writeUint16(0xC0 | (n & 0xF))
 	case "clr":
 		asm.checkLen(args, 1)
 		asm.writeUint16(0xE0)
 	case "rts":
 		asm.checkLen(args, 1)
 		asm.writeUint16(0xEE)
+	case "scrr":
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xFB)
+	case "scrl":
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xFC)
+	case "halt":
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xFD)
+	case "low":
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xFE)
+	case "high":
+		asm.checkLen(args, 1)
+		asm.writeUint16(0xFF)
 	case "jump", "call", "loadi", "jump0", "sys":
 		asm.checkLen(args, 2)
 

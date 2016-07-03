@@ -72,7 +72,10 @@ const defaultCPUSpeed = 500
 type machine struct {
 	programPath string
 	cpuSpeedHz  time.Duration
-	video       [64 * 32 * 3]byte
+	video       []byte
+	videoWidth  int
+	texture     *sdl.Texture
+	renderer    *sdl.Renderer
 }
 
 func (m *machine) Load(memory []byte) {
@@ -103,6 +106,19 @@ func (m *machine) Key(code int) bool {
 }
 func (m *machine) SetCPUFrequency(freq int) {
 	m.cpuSpeedHz = time.Duration(freq)
+}
+
+func (m *machine) ResizeVideo(width int) {
+	m.texture.Destroy()
+
+	texture, err := m.renderer.CreateTexture(sdl.PIXELFORMAT_BGR24, sdl.TEXTUREACCESS_STREAMING, width, width/2)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	m.texture = texture
+	m.videoWidth = width
+	m.video = make([]byte, width*(width/2)*3)
 }
 
 func (m *machine) Draw(video []byte) {
@@ -175,7 +191,6 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer texture.Destroy()
 
 	var specIn sdl.AudioSpec
 	specIn.Channels = 1
@@ -189,10 +204,21 @@ func main() {
 	}
 	defer sdl.CloseAudio()
 
-	m := machine{programPath: flags[0], cpuSpeedHz: defaultCPUSpeed}
-	updateTitle(window, &m)
+	m := &machine{
+		programPath: flags[0],
+		cpuSpeedHz:  defaultCPUSpeed,
+		texture:     texture,
+		renderer:    renderer,
+		videoWidth:  64,
+		video:       make([]byte, 64*32*3),
+	}
 
-	sys := chip8.NewSystem(&m)
+	defer func() {
+		m.texture.Destroy()
+	}()
+
+	updateTitle(window, m)
+	sys := chip8.NewSystem(m)
 
 	cpuSpeedHz := m.cpuSpeedHz
 	tickRender := time.Tick(time.Second / 65)
@@ -231,15 +257,15 @@ func main() {
 
 			if cpuSpeedHz != m.cpuSpeedHz {
 				cpuSpeedHz = m.cpuSpeedHz
-				updateTitle(window, &m)
+				updateTitle(window, m)
 				tickCPU = time.Tick(time.Second / m.cpuSpeedHz)
 			}
 
 			sys.Refresh()
 
 			renderer.Clear()
-			texture.Update(nil, unsafe.Pointer(&m.video[0]), 64*3)
-			renderer.Copy(texture, nil, nil)
+			texture.Update(nil, unsafe.Pointer(&m.video[0]), m.videoWidth*3)
+			renderer.Copy(m.texture, nil, nil)
 			renderer.Present()
 		case <-tickCPU:
 			if err := sys.Step(); err != nil {

@@ -20,6 +20,7 @@ package chip8
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -27,6 +28,11 @@ import (
 )
 
 const Version = "1.2.0"
+
+var (
+	ErrExit                  = errors.New("exit")
+	ErrSuperChipNotSupported = errors.New("superchip instructions (0xF030, 0xF075, 0xF085) is not supported")
+)
 
 var fontset = [80]byte{
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -54,9 +60,8 @@ type InputOutput interface {
 	Rand() *rand.Rand
 	BeginTone()
 	EndTone()
-
-	// Color extension
 	SetCPUFrequency(freq int)
+	ResizeVideo(width int)
 }
 
 type System struct {
@@ -65,7 +70,9 @@ type System struct {
 
 	stack  [16]uint16
 	memory [4096]byte
-	video  [2048]byte
+
+	videoMemory [128 * 64]byte
+	video       []byte
 
 	delayTimer, soundTimer byte
 	io                     InputOutput
@@ -74,6 +81,7 @@ type System struct {
 	rnd      *rand.Rand
 
 	fgColor, bgColor byte
+	screenWidth      uint16
 	draw             bool
 }
 
@@ -123,6 +131,9 @@ func (sys *System) Reset() {
 	sys.fgColor = 0xFF
 	sys.bgColor = 0x0
 
+	sys.screenWidth = 64
+	sys.video = sys.videoMemory[:64*32]
+
 	sys.delayTimer = 0
 	sys.soundTimer = 0
 
@@ -152,6 +163,34 @@ func (sys *System) clearScreen() {
 	sys.draw = true
 }
 
+func (sys *System) scrollDown(numLines int) {
+	height := sys.screenWidth / 2
+	for d, y := uint16(height), uint16(height-uint16(numLines)); y >= 0; y-- {
+		for x := uint16(0); x < sys.screenWidth; x++ {
+			sys.video[d*sys.screenWidth+x] = sys.video[y*sys.screenWidth+x]
+			d++
+		}
+	}
+}
+
+func (sys *System) scrollRight() {
+	for y := uint16(0); y < sys.screenWidth/2; y++ {
+		for d, x := uint16(4), uint16(0); d < sys.screenWidth; x++ {
+			sys.video[y*sys.screenWidth+d] = sys.video[y*sys.screenWidth+x]
+			d++
+		}
+	}
+}
+
+func (sys *System) scrollLeft() {
+	for y := uint16(0); y < sys.screenWidth/2; y++ {
+		for d, x := uint16(0), uint16(4); x < sys.screenWidth; x++ {
+			sys.video[y*sys.screenWidth+d] = sys.video[y*sys.screenWidth+x]
+			d++
+		}
+	}
+}
+
 func (sys *System) tickTimers() {
 	if time.Since(sys.lastTick) < time.Second/60 {
 		return
@@ -171,23 +210,43 @@ func (sys *System) tickTimers() {
 }
 
 func (sys *System) op0(opcode uint16) error {
-	switch opcode & 0xFF {
-	case 0xE0:
-		sys.clearScreen()
-	case 0xEE:
-		sys.sp--
-		sys.pc = sys.stack[sys.sp&0xF]
-	default:
-		switch opcode {
-		case 0x100:
-			sys.io.SetCPUFrequency(int(sys.v[0]) * 10)
-		case 0x101:
-			sys.Reset()
-			return nil
-		case 0x102:
-			sys.bgColor = sys.v[0]
-			sys.fgColor = sys.v[1]
+	if opcode&0xF0 == 0xC0 {
+		sys.scrollDown(int(opcode & 0xF))
+	} else {
+		switch opcode & 0xFF {
+		case 0xE0:
 			sys.clearScreen()
+		case 0xEE:
+			sys.sp--
+			sys.pc = sys.stack[sys.sp&0xF]
+		case 0xFB:
+			sys.scrollRight()
+		case 0xFC:
+			sys.scrollLeft()
+		case 0xFD:
+			return ErrExit
+		case 0xFE:
+			sys.screenWidth = 64
+			sys.video = sys.videoMemory[:64*32]
+			sys.io.ResizeVideo(int(sys.screenWidth))
+			sys.clearScreen()
+		case 0xFF:
+			sys.screenWidth = 128
+			sys.video = sys.videoMemory[:128*64]
+			sys.io.ResizeVideo(int(sys.screenWidth))
+			sys.clearScreen()
+		default:
+			switch opcode {
+			case 0x100:
+				sys.io.SetCPUFrequency(int(sys.v[0]) * 10)
+			case 0x101:
+				sys.Reset()
+				return nil
+			case 0x102:
+				sys.bgColor = sys.v[0]
+				sys.fgColor = sys.v[1]
+				sys.clearScreen()
+			}
 		}
 	}
 
@@ -199,16 +258,12 @@ func (sys *System) op8(opcode uint16) error {
 	switch opcode & 0xF {
 	case 0x0:
 		sys.v[(opcode&0xF00)>>8] = sys.v[(opcode&0xF0)>>4]
-		sys.pc += 2
 	case 0x1:
 		sys.v[(opcode&0xF00)>>8] = sys.v[(opcode&0xF00)>>8] | sys.v[(opcode&0xF0)>>4]
-		sys.pc += 2
 	case 0x2:
 		sys.v[(opcode&0xF00)>>8] = sys.v[(opcode&0xF00)>>8] & sys.v[(opcode&0xF0)>>4]
-		sys.pc += 2
 	case 0x3:
 		sys.v[(opcode&0xF00)>>8] = sys.v[(opcode&0xF00)>>8] ^ sys.v[(opcode&0xF0)>>4]
-		sys.pc += 2
 	case 0x4:
 		res := int(sys.v[(opcode&0xF00)>>8]) + int(sys.v[(opcode&0xF0)>>4])
 		if res < 256 {
@@ -216,9 +271,7 @@ func (sys *System) op8(opcode uint16) error {
 		} else {
 			sys.v[0xF] = 1
 		}
-
 		sys.v[(opcode&0xF00)>>8] = byte(res)
-		sys.pc += 2
 	case 0x5:
 		res := int(sys.v[(opcode&0xF00)>>8]) - int(sys.v[(opcode&0xF0)>>4])
 		if res >= 0 {
@@ -226,13 +279,10 @@ func (sys *System) op8(opcode uint16) error {
 		} else {
 			sys.v[0xF] &= 0
 		}
-
 		sys.v[(opcode&0xF00)>>8] = byte(res)
-		sys.pc += 2
 	case 0x6:
 		sys.v[0xF] = sys.v[(opcode&0xF00)>>8] & 7
 		sys.v[(opcode&0xF00)>>8] = sys.v[(opcode&0xF00)>>8] >> 1
-		sys.pc += 2
 	case 0x7:
 		res := int(sys.v[(opcode&0xF00)>>8]) - int(sys.v[(opcode&0xF0)>>4])
 		if res > 0 {
@@ -240,18 +290,17 @@ func (sys *System) op8(opcode uint16) error {
 		} else {
 			sys.v[0xF] &= 0
 		}
-
 		sys.v[(opcode&0xF00)>>8] = byte(res)
-		sys.pc += 2
 	case 0xE:
 		sys.v[0xF] = sys.v[(opcode&0xF00)>>8] >> 7
 		sys.v[(opcode&0xF00)>>8] = sys.v[(opcode&0xF00)>>8] << 1
-		sys.pc += 2
 	default:
 		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xF); err != nil {
 			return err
 		}
 	}
+
+	sys.pc += 2
 	return nil
 }
 
@@ -281,7 +330,6 @@ func (sys *System) opF(opcode uint16) error {
 	switch opcode & 0xFF {
 	case 0x7:
 		sys.v[(opcode&0xF00)>>8] = sys.delayTimer
-		sys.pc += 2
 	case 0xA:
 		for i := 0; i < 16; i++ {
 			if sys.io.Key(i) {
@@ -289,43 +337,42 @@ func (sys *System) opF(opcode uint16) error {
 				sys.pc += 2
 			}
 		}
+		return nil
 	case 0x15:
 		sys.delayTimer = sys.v[(opcode&0xF00)>>8]
-		sys.pc += 2
 	case 0x18:
 		t := sys.v[(opcode&0xF00)>>8]
 		if sys.delayTimer == 0 && t > 0 {
 			sys.io.BeginTone()
 		}
 		sys.soundTimer = t
-		sys.pc += 2
 	case 0x1E:
 		sys.i += uint16(sys.v[(opcode&0xF00)>>8])
-		sys.pc += 2
 	case 0x29:
 		sys.i = uint16(sys.v[(opcode&0xF00)>>8]) * 5
-		sys.pc += 2
+	case 0x30:
+		return ErrSuperChipNotSupported
 	case 0x33:
 		sys.memory[sys.i&0xFFF] = sys.v[(opcode&0xF00)>>8] / 100
 		sys.memory[(sys.i+1)&0xFFF] = (sys.v[(opcode&0xF00)>>8] / 10) % 10
 		sys.memory[(sys.i+2)&0xFFF] = sys.v[(opcode&0xF00)>>8] % 10
-		sys.pc += 2
 	case 0x55:
 		for i := uint16(0); i <= ((opcode & 0xF00) >> 8); i++ {
 			sys.memory[(sys.i+i)&0xFFF] = sys.v[i]
 		}
-		sys.pc += 2
 	case 0x65:
 		for i := uint16(0); i <= ((opcode & 0xF00) >> 8); i++ {
 			sys.v[i] = sys.memory[(sys.i+i)&0xFFF]
 		}
-		sys.pc += 2
+	case 0x75, 0x85:
+		return ErrSuperChipNotSupported
 	default:
 		if err := fmt.Errorf("invalid opcode: 0x%X", opcode&0xFF); err != nil {
 			return err
 		}
 	}
 
+	sys.pc += 2
 	return nil
 }
 
@@ -388,12 +435,17 @@ func (sys *System) Step() error {
 		y := uint16(sys.v[(opcode&0xF0)>>4])
 		height := opcode & 0xF
 
+		// Check if we are in superchip mode.
+		if sys.screenWidth == 128 && height == 0 {
+			height = 16
+		}
+
 		sys.v[0xF] = 0
 		for yline := uint16(0); yline < height; yline++ {
 			pixel := sys.memory[(sys.i+yline)&0xFFF]
 			for xline := uint16(0); xline < 8; xline++ {
 				if (pixel & (0x80 >> xline)) != 0 {
-					offset := x + xline + ((y + yline) * 64)
+					offset := x + xline + ((y + yline) * sys.screenWidth)
 					if len(sys.video) > int(offset) {
 						if sys.video[offset] != sys.bgColor {
 							sys.v[0xF] = 1
@@ -429,7 +481,7 @@ func (sys *System) Step() error {
 func (sys *System) Refresh() {
 	if sys.draw {
 		sys.draw = false
-		sys.io.Draw(sys.video[:])
+		sys.io.Draw(sys.video)
 	}
 }
 
