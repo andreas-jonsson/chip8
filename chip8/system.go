@@ -478,6 +478,14 @@ func (sys *System) Step() error {
 	return nil
 }
 
+func (sys *System) Invalid() bool {
+	return sys.draw
+}
+
+func (sys *System) Invalidate() {
+	sys.draw = true
+}
+
 func (sys *System) Refresh() {
 	if sys.draw {
 		sys.draw = false
